@@ -24,7 +24,7 @@ public class FileSystemService {
     private CodeAnalysisService codeAnalysisService;
     
     public List<FileNode> listDirectory(String directoryPath) throws IOException {
-        File directory = new File(directoryPath);
+        File directory = new File(directoryPath).getCanonicalFile();
         
         if (!directory.exists()) {
             throw new IOException("Directory does not exist: " + directoryPath);
@@ -33,6 +33,9 @@ public class FileSystemService {
         if (!directory.isDirectory()) {
             throw new IOException("Path is not a directory: " + directoryPath);
         }
+        
+        // Security: Validate the path is not attempting directory traversal
+        validatePath(directory);
         
         List<FileNode> nodes = new ArrayList<>();
         File[] files = directory.listFiles();
@@ -70,11 +73,14 @@ public class FileSystemService {
     }
     
     public FileNode buildFileTree(String directoryPath, int maxDepth) throws IOException {
-        File rootFile = new File(directoryPath);
+        File rootFile = new File(directoryPath).getCanonicalFile();
         
         if (!rootFile.exists()) {
             throw new IOException("Path does not exist: " + directoryPath);
         }
+        
+        // Security: Validate the path is not attempting directory traversal
+        validatePath(rootFile);
         
         return buildFileTreeRecursive(rootFile, maxDepth, 0);
     }
@@ -120,7 +126,7 @@ public class FileSystemService {
     }
     
     public AnalysisResult analyzeDirectory(String directoryPath) throws IOException {
-        File directory = new File(directoryPath);
+        File directory = new File(directoryPath).getCanonicalFile();
         
         if (!directory.exists()) {
             throw new IOException("Path does not exist: " + directoryPath);
@@ -130,9 +136,23 @@ public class FileSystemService {
             throw new IOException("Path is not a directory: " + directoryPath);
         }
         
+        // Security: Validate the path is not attempting directory traversal
+        validatePath(directory);
+        
         AnalysisResult result = new AnalysisResult(directoryPath);
         analyzeDirectoryRecursive(directory, result);
         return result;
+    }
+    
+    private void validatePath(File file) throws IOException {
+        String canonicalPath = file.getCanonicalPath();
+        // Allow access only to user's home directory and subdirectories
+        // This prevents directory traversal attacks
+        // In production, you might want to configure allowed base paths
+        if (!canonicalPath.startsWith(System.getProperty("user.home")) && 
+            !canonicalPath.startsWith(System.getProperty("user.dir"))) {
+            throw new IOException("Access denied: Path is outside allowed directories");
+        }
     }
     
     private void analyzeDirectoryRecursive(File directory, AnalysisResult result) {

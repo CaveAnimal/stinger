@@ -53,8 +53,9 @@ public class CodeAnalysisService {
     }
     
     private int countLines(Path filePath) throws IOException {
-        List<String> lines = Files.readAllLines(filePath);
-        return lines.size();
+        try (var lines = Files.lines(filePath)) {
+            return (int) lines.count();
+        }
     }
     
     private int countJavaMethods(File file) {
