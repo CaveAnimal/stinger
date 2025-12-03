@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stinger - Code Repository Analysis Tool</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🐝 Stinger - Code Repository Analysis Tool</h1>
+            <p>Navigate and analyze code repositories</p>
+        </header>
+
+        <main>
+            <div class="path-section">
+                <label for="currentPath">Current Path:</label>
+                <div class="path-input-group">
+                    <input type="text" id="currentPath" placeholder="Enter directory path..." />
+                    <button id="navigateBtn" class="btn btn-primary">Navigate</button>
+                    <button id="analyzeBtn" class="btn btn-success">Analyze</button>
+                </div>
+            </div>
+
+            <div class="content-wrapper">
+                <div class="file-explorer">
+                    <h2>File Explorer</h2>
+                    <div id="fileList" class="file-list">
+                        <p class="empty-state">Enter a directory path to start exploring</p>
+                    </div>
+                </div>
+
+                <div class="analysis-panel">
+                    <h2>Analysis Results</h2>
+                    <div id="analysisResults" class="analysis-content">
+                        <p class="empty-state">Click "Analyze" to see results</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="/js/app.js"></script>
+</body>
+</html>
