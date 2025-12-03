@@ -5,6 +5,8 @@ import com.caveanimal.stinger.model.FileNode;
 import com.github.javaparser.JavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.body.MethodDeclaration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
@@ -21,6 +23,8 @@ import java.util.stream.Stream;
 
 @Service
 public class FileAnalysisService {
+    
+    private static final Logger logger = LoggerFactory.getLogger(FileAnalysisService.class);
     
     private static final Set<String> CODE_EXTENSIONS = new HashSet<>(Arrays.asList(
         "java", "js", "ts", "py", "cpp", "c", "h", "cs", "go", "rb", "php", 
@@ -118,7 +122,7 @@ public class FileAnalysisService {
                 result.setTotalMethods(result.getTotalMethods() + methodCount);
             }
         } catch (Exception e) {
-            // Continue analysis even if one file fails
+            logger.warn("Failed to analyze file: {} - {}", file.getPath(), e.getMessage());
         }
     }
 
@@ -136,7 +140,7 @@ public class FileAnalysisService {
                 return cu.findAll(MethodDeclaration.class).size();
             }
         } catch (Exception e) {
-            // Fall back to estimation
+            logger.debug("Failed to parse Java file {}, falling back to estimation: {}", file.getPath(), e.getMessage());
         }
         return 0;
     }
