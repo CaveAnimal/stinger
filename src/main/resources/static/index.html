@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code Repository Analyzer</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📊 Code Repository Analyzer</h1>
+            <p>Navigate folders and analyze code repositories</p>
+        </header>
+
+        <div class="main-content">
+            <div class="left-panel">
+                <div class="path-bar">
+                    <input type="text" id="pathInput" placeholder="Enter path...">
+                    <button id="goButton">Go</button>
+                    <button id="homeButton">Home</button>
+                </div>
+
+                <div class="current-path">
+                    <strong>Current Path:</strong> <span id="currentPath"></span>
+                </div>
+
+                <div class="file-explorer" id="fileExplorer">
+                    <div class="loading">Loading...</div>
+                </div>
+            </div>
+
+            <div class="right-panel">
+                <div class="analysis-section">
+                    <h2>Analysis Results</h2>
+                    <button id="analyzeButton" class="analyze-btn">Analyze Current Directory</button>
+                    
+                    <div id="analysisResults" class="analysis-results">
+                        <p class="no-analysis">Click "Analyze Current Directory" to see results</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
