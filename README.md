@@ -58,6 +58,8 @@ mvn test
 4. Click on folders to navigate into subdirectories
 5. Click **Analyze** to get comprehensive statistics about the directory and all its subdirectories
 
+Note: analysis output is saved to ./code_counter_results/<sanitized-root>/<YYYY_MM_DD>_<alpha> by default; you can change the base folder using the Spring property `stinger.results.dir`.
+
 ## Analysis Metrics
 
 The analysis provides the following metrics:
