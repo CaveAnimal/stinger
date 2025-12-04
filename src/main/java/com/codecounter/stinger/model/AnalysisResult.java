@@ -1,4 +1,4 @@
-package com.caveanimal.stinger.model;
+package com.codecounter.stinger.model;
 
 public class AnalysisResult {
     private int totalFolders;
@@ -8,6 +8,7 @@ public class AnalysisResult {
     private int totalMethods;
     private long totalLines;
     private String path;
+    private String resultsPath;
 
     public AnalysisResult() {
     }
@@ -66,5 +67,13 @@ public class AnalysisResult {
 
     public void setPath(String path) {
         this.path = path;
+    }
+
+    public String getResultsPath() {
+        return resultsPath;
+    }
+
+    public void setResultsPath(String resultsPath) {
+        this.resultsPath = resultsPath;
     }
 }

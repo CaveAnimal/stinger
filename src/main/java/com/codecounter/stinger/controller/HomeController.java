@@ -1,4 +1,4 @@
-package com.caveanimal.stinger.controller;
+package com.codecounter.stinger.controller;
 
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
