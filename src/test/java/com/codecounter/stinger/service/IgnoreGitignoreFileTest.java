@@ -31,7 +31,7 @@ class IgnoreGitignoreFileTest {
         // file that should be included
         Files.writeString(project.resolve("Included.java"), "public class Included {}\n");
 
-        System.setProperty("stinger.results.dir", tmpDir.resolve("results").toString());
+        System.setProperty("stinger.results.dir", tmpDir.resolve("code_counter_results").toString());
         try {
             AnalysisResult result = fileAnalysisService.analyzeDirectory(project.toString());
 

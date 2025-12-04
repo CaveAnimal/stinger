@@ -54,8 +54,8 @@ class FileAnalysisServiceTest {
         Path subdir = Files.createDirectory(tempDir.resolve("subdir"));
         Files.writeString(subdir.resolve("README.md"), "# Documentation\n\nSome content");
 
-        // avoid saving into repo results/ during tests
-        String resultsDir = tempDir.resolve("results").toString();
+        // avoid saving into repo code_counter_results/ during tests
+        String resultsDir = tempDir.resolve("code_counter_results").toString();
         System.setProperty("stinger.results.dir", resultsDir);
         try {
             AnalysisResult result = fileAnalysisService.analyzeDirectory(tempDir.toString());

@@ -73,7 +73,7 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.1.2</version>
                 <configuration>
-                    <!-- Ensure tests write results to target/test-results instead of repo-level ./results -->
+                    <!-- Ensure tests write results to target/test-results instead of repo-level ./code_counter_results -->
                     <systemPropertyVariables>
                         <stinger.results.dir>${project.build.directory}/test-results</stinger.results.dir>
                     </systemPropertyVariables>

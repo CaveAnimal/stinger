@@ -26,7 +26,7 @@ class ResultsAlphaSuffixTest {
         Files.writeString(project.resolve("A.java"), "public class A{}\n");
 
         // configure test-local results root
-        Path resultsRoot = tmpDir.resolve("results");
+        Path resultsRoot = tmpDir.resolve("code_counter_results");
         System.setProperty("stinger.results.dir", resultsRoot.toString());
 
         try {
