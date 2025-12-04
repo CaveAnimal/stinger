@@ -26,7 +26,7 @@ class PropertiesIsCodeTest {
         // properties file that should be counted as code
         Files.writeString(project.resolve("app.properties"), "some.value=1\n");
 
-        System.setProperty("stinger.results.dir", tmpDir.resolve("results").toString());
+        System.setProperty("stinger.results.dir", tmpDir.resolve("code_counter_results").toString());
         try {
             AnalysisResult result = fileAnalysisService.analyzeDirectory(project.toString());
 

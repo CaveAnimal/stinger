@@ -22,7 +22,7 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import io.github.bonigarcia.wdm.WebDriverManager;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@Disabled("Disabled during CI - writes results/ if run")
+@Disabled("Disabled during CI - writes code_counter_results/ if run")
 public class FormattingE2ETest {
 
     @LocalServerPort

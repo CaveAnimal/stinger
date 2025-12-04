@@ -29,8 +29,8 @@ class SaveResultsServiceTest {
         Files.writeString(tmpDir.resolve("README.md"), "# test");
         Files.writeString(tmpDir.resolve("data.bin"), "bin");
 
-        // avoid writing into repo results/ during tests
-        String resultsDir = tmpDir.resolve("results").toString();
+        // avoid writing into repo code_counter_results/ during tests
+        String resultsDir = tmpDir.resolve("code_counter_results").toString();
         System.setProperty("stinger.results.dir", resultsDir);
         try {
             Path out = fileAnalysisService.saveAnalysisResults(tmpDir.toString());

@@ -51,10 +51,10 @@ public class FileAnalysisService {
     ));
 
     // configurable base results dir. Tests may set system / spring property `stinger.results.dir`
-    // to point to a temporary location so tests do not write into the repo's ./results/ folder.
+    // to point to a temporary location so tests do not write into the repo's ./code_counter_results/ folder.
     private final String resultsDirProperty;
 
-    public FileAnalysisService(@Value("${stinger.results.dir:results}") String resultsDirProperty) {
+    public FileAnalysisService(@Value("${stinger.results.dir:code_counter_results}") String resultsDirProperty) {
         this.resultsDirProperty = resultsDirProperty;
     }
 
@@ -93,7 +93,7 @@ public class FileAnalysisService {
 
     /**
      * Save detailed analysis lists (folders, all files, code files, documents, other files)
-     * to the ./results/<sanitized-root>/<YYYY_MM_DD>_alpha/ directory under application working directory.
+    * to the ./code_counter_results/<sanitized-root>/<YYYY_MM_DD>_alpha/ directory under application working directory.
      * Returns the path to the created results folder.
      */
     public Path saveAnalysisResults(String dirPath) throws IOException {
@@ -314,7 +314,7 @@ public class FileAnalysisService {
         Set<String> visited = new HashSet<>();
         analyzeRecursively(path.toFile(), result, visited);
 
-        // Save results automatically into results/<last-folder>/YYYY_MM_DD_alpha
+        // Save results automatically into code_counter_results/<last-folder>/YYYY_MM_DD_alpha
         try {
             Path saved = saveAnalysisResults(dirPath);
             logger.info("Auto-saved analysis results to {}", saved);
