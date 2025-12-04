@@ -5,6 +5,7 @@ let forwardStack = [];
 
 document.addEventListener('DOMContentLoaded', function() {
     const pathInput = document.getElementById('currentPath');
+    const navigateBtn = document.getElementById('navigateBtn');
     const analyzeBtn = document.getElementById('analyzeBtn');
     const backBtn = document.getElementById('backBtn');
 
@@ -16,7 +17,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     currentPath = pathInput.value;
 
-    // Navigation can be triggered by pressing Enter in the input or by clicking folder items
+    navigateBtn.addEventListener('click', () => {
+        goToPath(pathInput.value);
+    });
 
     analyzeBtn.addEventListener('click', () => {
         currentPath = pathInput.value;

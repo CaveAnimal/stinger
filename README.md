@@ -54,7 +54,7 @@ mvn test
 
 1. Open your browser and navigate to `http://localhost:8080`
 2. Enter a directory path in the "Current Path" field
-3. Press Enter while focused on the "Current Path" field to navigate to that path (or click on folders shown in the file list)
+3. Click **Navigate** to browse the directory contents
 4. Click on folders to navigate into subdirectories
 5. Click **Analyze** to get comprehensive statistics about the directory and all its subdirectories
 
