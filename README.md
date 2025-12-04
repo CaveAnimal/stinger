@@ -70,6 +70,18 @@ To keep analysis fast and avoid scanning common large or binary directories the 
 - virtualenv and Python cache directories: .venv, .venv2, venv, venv2, env, __pycache__, site-packages
 - node_modules
 
+Additional ignored directories and files
+---------------------------------------
+By default Stinger now also ignores these commonly cached or tooling folders and backup files:
+
+- Husky git hooks: `.husky`
+- Python pytest cache: `.pytest_cache`
+- Chroma/embedding stores: `chroma`
+- Lucene indexes: `lucene-indices`
+- Generic cache directories: `.cache`
+- Model folders: `models`
+- Backup files ending with `.bak` are ignored
+
 If you have additional folders you want ignored (e.g., custom build caches), we can add configurable ignore patterns or expose a setting for users to extend this list.
 
 How to configure additional ignored directories

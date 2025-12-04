@@ -51,6 +51,16 @@ public class FileAnalysisService {
         // typical virtualenv / Python cache folders and site-packages
         ".venv", "venv", "env", "__pycache__", "site-packages"
     ));
+    
+    // other commonly ignored folders
+    static {
+        IGNORED_DIR_NAMES.add(".husky");
+        IGNORED_DIR_NAMES.add(".pytest_cache");
+        IGNORED_DIR_NAMES.add("chroma");
+        IGNORED_DIR_NAMES.add("lucene-indices");
+        IGNORED_DIR_NAMES.add(".cache");
+        IGNORED_DIR_NAMES.add("models");
+    }
 
     // some directories are better matched by pattern/prefix than exact name
     private static final String[] IGNORED_DIR_PREFIXES = new String[] {
@@ -94,7 +104,7 @@ public class FileAnalysisService {
 
     // file extensions to ignore completely (case-insensitive)
     private static final Set<String> IGNORED_FILE_EXTENSIONS = new HashSet<>(Arrays.asList(
-        "idx", "db", "iml", "log"
+        "idx", "db", "iml", "log", "bak"
     ));
 
     // configurable base results dir. Tests may set system / spring property `stinger.results.dir`
