@@ -407,8 +407,10 @@ public class FileAnalysisService {
                 result.setTotalFolders(result.getTotalFolders() + 1);
                 try {
                     emitter.send(org.springframework.web.servlet.mvc.method.annotation.SseEmitter.event().name("directory").data(file.getAbsolutePath()));
-                } catch (Exception e) {
-                    logger.debug("Failed to send directory event for {}: {}", file.getAbsolutePath(), e.getMessage());
+                } catch (IOException | IllegalStateException sendEx) {
+                    // If we can't send directory event (client likely disconnected) then abort streaming
+                    logger.debug("Emitter send failure for directory {}: {} — aborting stream", file.getAbsolutePath(), sendEx.getMessage());
+                    throw sendEx instanceof IOException ? (IOException) sendEx : new IOException(sendEx);
                 }
                 // skip descending into any 'target' directories - they are usually build outputs
                 if (file.isDirectory() && IGNORED_DIR_NAMES.contains(file.getName().toLowerCase())) {
@@ -429,11 +431,11 @@ public class FileAnalysisService {
 
                 if ("code".equals(fileType)) {
                     result.setTotalCodeFiles(result.getTotalCodeFiles() + 1);
-                    try { emitter.send(org.springframework.web.servlet.mvc.method.annotation.SseEmitter.event().name("file").data(file.getAbsolutePath())); } catch (Exception e) { logger.debug("failed to send file event: {}", e.getMessage()); }
+                    try { emitter.send(org.springframework.web.servlet.mvc.method.annotation.SseEmitter.event().name("file").data(file.getAbsolutePath())); } catch (IOException | IllegalStateException e) { logger.debug("failed to send file event (emitter closed?): {}", e.getMessage()); throw new IOException(e); }
                     analyzeCodeFile(file, extension, result);
                 } else if ("document".equals(fileType)) {
                     result.setTotalDocFiles(result.getTotalDocFiles() + 1);
-                    try { emitter.send(org.springframework.web.servlet.mvc.method.annotation.SseEmitter.event().name("file").data(file.getAbsolutePath())); } catch (Exception e) { logger.debug("failed to send file event: {}", e.getMessage()); }
+                    try { emitter.send(org.springframework.web.servlet.mvc.method.annotation.SseEmitter.event().name("file").data(file.getAbsolutePath())); } catch (IOException | IllegalStateException e) { logger.debug("failed to send file event (emitter closed?): {}", e.getMessage()); throw new IOException(e); }
                 }
             }
         }
@@ -534,14 +536,20 @@ public class FileAnalysisService {
                 int methodCount = estimateMethodCount(file, extension);
                 result.setTotalMethods(result.getTotalMethods() + methodCount);
             }
+        } catch (java.nio.charset.MalformedInputException mie) {
+            // binary or undecodable file — skip method counting and lines for this file
+            logger.debug("Skipping file due to malformed encoding (likely binary): {} — {}", file.getPath(), mie.getMessage());
         } catch (Exception e) {
             logger.warn("Failed to analyze file: {} - {}", file.getPath(), e.getMessage());
         }
     }
 
     private long countLines(File file) throws IOException {
-        try (Stream<String> lines = Files.lines(file.toPath())) {
+        try (Stream<String> lines = Files.lines(file.toPath(), java.nio.charset.StandardCharsets.UTF_8)) {
             return lines.count();
+        } catch (java.nio.charset.MalformedInputException mie) {
+            logger.debug("countLines: Malformed input when reading {} — treating as 0 lines", file.getPath());
+            return 0L;
         }
     }
 
@@ -560,7 +568,7 @@ public class FileAnalysisService {
 
     private int estimateMethodCount(File file, String extension) {
         try {
-            List<String> lines = Files.readAllLines(file.toPath());
+            List<String> lines = Files.readAllLines(file.toPath(), java.nio.charset.StandardCharsets.UTF_8);
             int methodCount = 0;
             
             for (String line : lines) {
@@ -585,7 +593,14 @@ public class FileAnalysisService {
             }
             
             return methodCount;
+        } catch (java.nio.charset.MalformedInputException mie) {
+            logger.debug("estimateMethodCount: Malformed input while reading {} — skipping method estimation", file.getPath());
+            return 0;
+        } catch (IOException ioe) {
+            logger.debug("estimateMethodCount: IO error reading {} — {}", file.getPath(), ioe.getMessage());
+            return 0;
         } catch (Exception e) {
+            logger.debug("estimateMethodCount: unexpected error for {} — {}", file.getPath(), e.getMessage());
             return 0;
         }
     }
