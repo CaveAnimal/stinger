@@ -2,7 +2,7 @@
 
 **Aerial Code Repository Analysis Tool**
 
-A Java 17 Spring Boot application with a browser-based front end for analyzing code repositories. Navigate through directories and get comprehensive insights into your codebase structure.
+A Java 21 Spring Boot application with a browser-based front end for analyzing code repositories. Navigate through directories and get comprehensive insights into your codebase structure.
 
 ## Features
 
@@ -25,7 +25,7 @@ Markdown, Text files, RST, AsciiDoc, PDF, Word documents
 
 ## Requirements
 
-- Java 17 or higher
+- Java 21 or higher
 - Maven 3.6+
 
 ## Getting Started
@@ -71,7 +71,7 @@ The analysis provides the following metrics:
 
 ## Technology Stack
 
-- **Backend**: Java 17, Spring Boot 3.2.0
+- **Backend**: Java 21, Spring Boot 3.2.0
 - **Frontend**: HTML5, CSS3, Vanilla JavaScript
 - **Template Engine**: Thymeleaf
 - **Code Parsing**: JavaParser (for Java method counting)
