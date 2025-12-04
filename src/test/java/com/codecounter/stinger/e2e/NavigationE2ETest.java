@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.openqa.selenium.By;
+import org.openqa.selenium.Keys;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
@@ -63,13 +64,13 @@ public class NavigationE2ETest {
         // Wait for input and buttons to be visible
         wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("currentPath")));
         WebElement input = driver.findElement(By.id("currentPath"));
-        WebElement navigateBtn = driver.findElement(By.id("navigateBtn"));
 
         // Use the temp dir path as the starting path
         String startPath = tmpDir.toString();
         input.clear();
         input.sendKeys(startPath);
-        navigateBtn.click();
+        // press Enter to trigger navigation (Navigate button removed)
+        input.sendKeys(Keys.ENTER);
 
         // Wait for the file item with the folder name to appear
         String folderName = "Cakewalk Content";
