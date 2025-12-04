@@ -47,7 +47,12 @@ public class FileAnalysisService {
 
     // directories to ignore entirely (case-insensitive)
     private static final Set<String> IGNORED_DIR_NAMES = new HashSet<>(Arrays.asList(
-        "target", ".github", ".idea", ".vscode", "code_counter_results"
+        "target", ".github", ".idea", ".vscode", "code_counter_results", "data"
+    ));
+
+    // file extensions to ignore completely (case-insensitive)
+    private static final Set<String> IGNORED_FILE_EXTENSIONS = new HashSet<>(Arrays.asList(
+        "idx", "db", "iml"
     ));
 
     // configurable base results dir. Tests may set system / spring property `stinger.results.dir`
@@ -258,6 +263,12 @@ public class FileAnalysisService {
                     }
                     walkAndCollect(f, visited, folders, allFiles, codeFiles, docFiles, otherFiles);
                 } else {
+                    // skip files with ignored extensions (e.g. .idx .db)
+                    String _ext = getFileExtension(f.getName());
+                    if (_ext != null && IGNORED_FILE_EXTENSIONS.contains(_ext)) {
+                        logger.debug("Skipping ignored file by extension: {}", f.getAbsolutePath());
+                        continue;
+                    }
                     // ignore files named .gitignore explicitly
                     if (".gitignore".equalsIgnoreCase(f.getName())) {
                         logger.debug("Skipping file named .gitignore: {}", f.getAbsolutePath());
@@ -406,6 +417,12 @@ public class FileAnalysisService {
                 }
                 analyzeRecursivelyStream(file, result, visited, emitter);
             } else {
+                // skip files with ignored extensions (e.g. .idx, .db)
+                String fileExt = getFileExtension(file.getName());
+                if (fileExt != null && IGNORED_FILE_EXTENSIONS.contains(fileExt)) {
+                    logger.debug("Skipping ignored file by extension during stream analysis: {}", file.getAbsolutePath());
+                    continue;
+                }
                 result.setTotalFiles(result.getTotalFiles() + 1);
                 String extension = getFileExtension(file.getName());
                 String fileType = classifyFile(extension);
@@ -476,6 +493,12 @@ public class FileAnalysisService {
                     // ignore files named .gitignore explicitly
                     if (".gitignore".equalsIgnoreCase(file.getName())) {
                         logger.debug("Skipping file named .gitignore during analysis: {}", file.getAbsolutePath());
+                        continue;
+                    }
+                    // ignore files with ignored extensions (e.g. .idx, .db)
+                    String fext2 = getFileExtension(file.getName());
+                    if (fext2 != null && IGNORED_FILE_EXTENSIONS.contains(fext2)) {
+                        logger.debug("Skipping ignored file by extension during analysis: {}", file.getAbsolutePath());
                         continue;
                     }
                 result.setTotalFiles(result.getTotalFiles() + 1);
