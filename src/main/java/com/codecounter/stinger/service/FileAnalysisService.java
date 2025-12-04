@@ -47,7 +47,7 @@ public class FileAnalysisService {
 
     // directories to ignore entirely (case-insensitive)
     private static final Set<String> IGNORED_DIR_NAMES = new HashSet<>(Arrays.asList(
-        "target", ".github", ".idea", ".vscode"
+        "target", ".github", ".idea", ".vscode", "code_counter_results"
     ));
 
     // configurable base results dir. Tests may set system / spring property `stinger.results.dir`
