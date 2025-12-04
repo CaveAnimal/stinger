@@ -81,6 +81,7 @@ By default Stinger now also ignores these commonly cached or tooling folders and
 - Generic cache directories: `.cache`
 - Model folders: `models`
 - Backup files ending with `.bak` are ignored
+ - Tooling/workspace folder: `assistant-proceed-extension`
 
 If you have additional folders you want ignored (e.g., custom build caches), we can add configurable ignore patterns or expose a setting for users to extend this list.
 
