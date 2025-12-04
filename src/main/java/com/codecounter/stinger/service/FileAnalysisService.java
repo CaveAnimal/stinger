@@ -73,6 +73,22 @@ public class FileAnalysisService {
             if (name.startsWith(prefix)) return true;
         }
 
+        // allow user to add additional ignore patterns via system property
+        // comma-separated patterns, supports exact names or suffix '*' wildcard, e.g. 'build,temp*,node_modules'
+        String extra = System.getProperty("stinger.ignore.dirs", "");
+        if (extra != null && !extra.isBlank()) {
+            for (String raw : extra.split(",")) {
+                String p = raw.trim().toLowerCase();
+                if (p.isEmpty()) continue;
+                if (p.endsWith("*")) {
+                    String pref = p.substring(0, p.length() - 1);
+                    if (name.startsWith(pref)) return true;
+                } else {
+                    if (name.equals(p)) return true;
+                }
+            }
+        }
+
         return false;
     }
 
