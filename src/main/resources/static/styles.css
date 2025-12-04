@@ -1,0 +1,277 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+}
+
+header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 30px;
+    text-align: center;
+}
+
+header h1 {
+    font-size: 2.5rem;
+    margin-bottom: 10px;
+}
+
+header p {
+    font-size: 1.1rem;
+    opacity: 0.9;
+}
+
+.main-content {
+    display: flex;
+    height: calc(100vh - 200px);
+    min-height: 600px;
+}
+
+.left-panel {
+    flex: 1;
+    border-right: 2px solid #e0e0e0;
+    display: flex;
+    flex-direction: column;
+}
+
+.right-panel {
+    flex: 0 0 400px;
+    background: #f8f9fa;
+    padding: 20px;
+}
+
+.path-bar {
+    padding: 20px;
+    background: #f8f9fa;
+    border-bottom: 2px solid #e0e0e0;
+    display: flex;
+    gap: 10px;
+}
+
+#pathInput {
+    flex: 1;
+    padding: 10px 15px;
+    border: 2px solid #ddd;
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+#pathInput:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+button {
+    padding: 10px 20px;
+    background: #667eea;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    transition: background 0.3s;
+}
+
+button:hover {
+    background: #5568d3;
+}
+
+button:active {
+    transform: translateY(1px);
+}
+
+.current-path {
+    padding: 15px 20px;
+    background: #fff3cd;
+    border-bottom: 2px solid #ffc107;
+    font-size: 14px;
+}
+
+#currentPath {
+    color: #856404;
+    font-family: monospace;
+}
+
+.file-explorer {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+}
+
+.file-item {
+    padding: 12px 15px;
+    margin-bottom: 5px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: background 0.2s;
+    border: 1px solid transparent;
+}
+
+.file-item:hover {
+    background: #f0f0f0;
+    border-color: #667eea;
+}
+
+.file-item.directory {
+    font-weight: 600;
+    color: #667eea;
+}
+
+.file-item.code {
+    color: #28a745;
+}
+
+.file-item.document {
+    color: #007bff;
+}
+
+.file-item.other {
+    color: #6c757d;
+}
+
+.file-icon {
+    font-size: 20px;
+}
+
+.file-name {
+    flex: 1;
+}
+
+.file-size {
+    font-size: 12px;
+    color: #6c757d;
+}
+
+.loading {
+    text-align: center;
+    padding: 40px;
+    color: #6c757d;
+    font-size: 16px;
+}
+
+.error {
+    background: #f8d7da;
+    color: #721c24;
+    padding: 15px;
+    border-radius: 6px;
+    margin: 20px;
+    border: 1px solid #f5c6cb;
+}
+
+.analysis-section h2 {
+    margin-bottom: 20px;
+    color: #333;
+}
+
+.analyze-btn {
+    width: 100%;
+    padding: 15px;
+    font-size: 16px;
+    margin-bottom: 20px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.analyze-btn:hover {
+    opacity: 0.9;
+}
+
+.analysis-results {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.no-analysis {
+    text-align: center;
+    color: #6c757d;
+    padding: 40px 20px;
+}
+
+.stat-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.stat-card {
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    padding: 15px;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.stat-card.highlight {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.stat-value {
+    font-size: 2rem;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.stat-label {
+    font-size: 0.9rem;
+    opacity: 0.8;
+}
+
+.analyzing {
+    text-align: center;
+    padding: 40px;
+}
+
+.spinner {
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #667eea;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 20px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Scrollbar styling */
+.file-explorer::-webkit-scrollbar {
+    width: 8px;
+}
+
+.file-explorer::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+.file-explorer::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 4px;
+}
+
+.file-explorer::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
