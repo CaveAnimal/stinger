@@ -72,6 +72,29 @@ To keep analysis fast and avoid scanning common large or binary directories the 
 
 If you have additional folders you want ignored (e.g., custom build caches), we can add configurable ignore patterns or expose a setting for users to extend this list.
 
+How to configure additional ignored directories
+---------------------------------------------
+Stinger supports a runtime property that lets you add your own directory names or prefix patterns to the ignore list: stinger.ignore.dirs
+
+- Where to set it
+  - JVM system property when launching the app (recommended):
+
+    ```bash
+    java -Dstinger.ignore.dirs="my_ignore,cache*,temp*" -jar stinger.jar
+    # or via mvn
+    mvn -Dstinger.ignore.dirs="my_ignore,cache*,temp*" spring-boot:run
+    ```
+
+  - In unit tests you can set it programmatically with System.setProperty("stinger.ignore.dirs", "pattern1,pattern2*")
+
+- Format and behavior
+  - Comma-separated values (no spaces required, but they are allowed and trimmed).
+  - Exact names are matched case-insensitively (example: `my_ignore`).
+  - Prefix wildcards are supported using a trailing asterisk (example: `cache*` matches `cache`, `cache1`, `cache-other`).
+  - The property is evaluated at runtime and applied in addition to the built-in ignore names (code_counter_results, data, target, .venv, node_modules, etc.).
+
+This makes it easy to skip any local build caches, tool-specific folders, or other large directories you don't want analyzed.
+
 ## Analysis Metrics
 
 The analysis provides the following metrics:
