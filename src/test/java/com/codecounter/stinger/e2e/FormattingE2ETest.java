@@ -58,8 +58,7 @@ public class FormattingE2ETest {
 
         wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("currentPath")));
         driver.findElement(By.id("currentPath")).sendKeys(start.toString());
-        // Navigate button removed — use Enter to jump to path
-        driver.findElement(By.id("currentPath")).sendKeys(org.openqa.selenium.Keys.ENTER);
+        driver.findElement(By.id("navigateBtn")).click();
 
         // Wait for file list to appear
         wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector("div.file-item")));
