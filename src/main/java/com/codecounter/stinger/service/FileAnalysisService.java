@@ -47,7 +47,9 @@ public class FileAnalysisService {
 
     // directories to ignore entirely (case-insensitive)
     private static final Set<String> IGNORED_DIR_NAMES = new HashSet<>(Arrays.asList(
-        "target", ".github", ".idea", ".vscode", "code_counter_results", "data"
+        "target", ".github", ".idea", ".vscode", "code_counter_results", "data",
+        // typical virtualenv / Python cache folders and site-packages
+        ".venv", "venv", "env", "__pycache__", "site-packages"
     ));
 
     // file extensions to ignore completely (case-insensitive)
