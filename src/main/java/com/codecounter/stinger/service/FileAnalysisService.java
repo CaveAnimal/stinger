@@ -60,6 +60,8 @@ public class FileAnalysisService {
         IGNORED_DIR_NAMES.add("lucene-indices");
         IGNORED_DIR_NAMES.add(".cache");
         IGNORED_DIR_NAMES.add("models");
+        // ignore assistant-proceed-extension workspace/tooling folder
+        IGNORED_DIR_NAMES.add("assistant-proceed-extension");
     }
 
     // some directories are better matched by pattern/prefix than exact name
