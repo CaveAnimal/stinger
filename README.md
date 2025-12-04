@@ -60,6 +60,18 @@ mvn test
 
 Note: analysis output is saved to ./code_counter_results/<sanitized-root>/<YYYY_MM_DD>_<alpha> by default; you can change the base folder using the Spring property `stinger.results.dir`.
 
+Ignored directories by default
+----------------------------
+To keep analysis fast and avoid scanning common large or binary directories the analyzer ignores several directory names (case-insensitive) by default. These include:
+
+- code_counter_results (analysis results folder)
+- data
+- target, .github, .idea, .vscode
+- virtualenv and Python cache directories: .venv, .venv2, venv, venv2, env, __pycache__, site-packages
+- node_modules
+
+If you have additional folders you want ignored (e.g., custom build caches), we can add configurable ignore patterns or expose a setting for users to extend this list.
+
 ## Analysis Metrics
 
 The analysis provides the following metrics:
