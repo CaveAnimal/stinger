@@ -33,3 +33,6 @@ build/
 
 ### Mac ###
 .DS_Store
+
+# Generated analysis results (do not commit)
+code_counter_results/
