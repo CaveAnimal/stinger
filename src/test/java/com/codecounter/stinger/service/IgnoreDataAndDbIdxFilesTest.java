@@ -30,6 +30,8 @@ class IgnoreDataAndDbIdxFilesTest {
         Files.writeString(project.resolve("local.db"), "sqlite data");
         // IntelliJ module files should also be ignored
         Files.writeString(project.resolve("module.iml"), "<module/>\n");
+        // runtime / build logs should be ignored too
+        Files.writeString(project.resolve("app.log"), "log line 1\n");
 
         // create a normal file that should be included
         Files.writeString(project.resolve("Included.java"), "public class Included {}\n");
@@ -45,6 +47,7 @@ class IgnoreDataAndDbIdxFilesTest {
             assertFalse(totalFiles.stream().anyMatch(s -> s.endsWith(".idx")), "*.idx files must not be present in saved totals");
             assertFalse(totalFiles.stream().anyMatch(s -> s.endsWith(".db")), "*.db files must not be present in saved totals");
             assertFalse(totalFiles.stream().anyMatch(s -> s.endsWith(".iml")), "*.iml files must not be present in saved totals");
+            assertFalse(totalFiles.stream().anyMatch(s -> s.endsWith(".log")), "*.log files must not be present in saved totals");
         } finally {
             System.clearProperty("stinger.results.dir");
         }

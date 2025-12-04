@@ -52,7 +52,7 @@ public class FileAnalysisService {
 
     // file extensions to ignore completely (case-insensitive)
     private static final Set<String> IGNORED_FILE_EXTENSIONS = new HashSet<>(Arrays.asList(
-        "idx", "db", "iml"
+        "idx", "db", "iml", "log"
     ));
 
     // configurable base results dir. Tests may set system / spring property `stinger.results.dir`
