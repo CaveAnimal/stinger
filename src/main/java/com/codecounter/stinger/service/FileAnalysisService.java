@@ -52,6 +52,30 @@ public class FileAnalysisService {
         ".venv", "venv", "env", "__pycache__", "site-packages"
     ));
 
+    // some directories are better matched by pattern/prefix than exact name
+    private static final String[] IGNORED_DIR_PREFIXES = new String[] {
+        ".venv", // .venv, .venv2, .venv-old
+        "venv",  // venv, venv2
+    };
+
+    private static final Set<String> IGNORED_DIR_EXACT = new HashSet<>(Arrays.asList(
+        "node_modules"
+    ));
+
+    private boolean isIgnoredDirectoryName(String rawName) {
+        if (rawName == null) return false;
+        String name = rawName.toLowerCase();
+
+        if (IGNORED_DIR_NAMES.contains(name)) return true;
+        if (IGNORED_DIR_EXACT.contains(name)) return true;
+
+        for (String prefix : IGNORED_DIR_PREFIXES) {
+            if (name.startsWith(prefix)) return true;
+        }
+
+        return false;
+    }
+
     // file extensions to ignore completely (case-insensitive)
     private static final Set<String> IGNORED_FILE_EXTENSIONS = new HashSet<>(Arrays.asList(
         "idx", "db", "iml", "log"
@@ -259,7 +283,7 @@ public class FileAnalysisService {
                 String fcanon = f.getCanonicalPath();
                 if (visited.contains(fcanon)) continue;
                 if (f.isDirectory()) {
-                    if (IGNORED_DIR_NAMES.contains(f.getName().toLowerCase())) {
+                    if (isIgnoredDirectoryName(f.getName())) {
                         logger.debug("Skipping nested ignored directory: {}", f.getAbsolutePath());
                         continue;
                     }
@@ -415,7 +439,7 @@ public class FileAnalysisService {
                     throw sendEx instanceof IOException ? (IOException) sendEx : new IOException(sendEx);
                 }
                 // skip descending into any 'target' directories - they are usually build outputs
-                if (file.isDirectory() && IGNORED_DIR_NAMES.contains(file.getName().toLowerCase())) {
+                if (file.isDirectory() && isIgnoredDirectoryName(file.getName())) {
                     logger.debug("Skipping ignored subdir during streaming analysis: {}", file.getAbsolutePath());
                     continue;
                 }
@@ -485,7 +509,7 @@ public class FileAnalysisService {
                     }
                     logger.trace("Recursing into directory: {}", file.getAbsolutePath());
                     // skip known ignored directories entirely (target, .github, .idea, .vscode)
-                    if (IGNORED_DIR_NAMES.contains(file.getName().toLowerCase())) {
+                    if (isIgnoredDirectoryName(file.getName())) {
                         logger.debug("Skipping nested 'target' directory during analysis: {}", file.getAbsolutePath());
                         continue;
                     }
