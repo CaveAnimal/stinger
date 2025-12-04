@@ -31,6 +31,12 @@ class IgnoreVirtualEnvAndCacheDirectoriesTest {
         Files.createDirectories(project.resolve("venv2/lib"));
         Files.createDirectories(project.resolve("env/lib"));
         Files.createDirectories(project.resolve("__pycache__"));
+        Files.createDirectories(project.resolve(".husky"));
+        Files.createDirectories(project.resolve(".pytest_cache"));
+        Files.createDirectories(project.resolve("chroma/indexes"));
+        Files.createDirectories(project.resolve("lucene-indices/index"));
+        Files.createDirectories(project.resolve(".cache/tmp"));
+        Files.createDirectories(project.resolve("models/foo"));
         Files.createDirectories(project.resolve(".venv2/lib"));
         Files.createDirectories(project.resolve("node_modules/some_module"));
 
@@ -41,6 +47,12 @@ class IgnoreVirtualEnvAndCacheDirectoriesTest {
         Files.writeString(project.resolve("env/lib/hidden3.py"), "print('z')");
         Files.writeString(project.resolve("__pycache__/cached.pyc"), "binary");
         Files.writeString(project.resolve(".venv2/lib/hiddenv2.py"), "print('v2')");
+        Files.writeString(project.resolve(".husky/pre-commit"), "#!/bin/sh");
+        Files.writeString(project.resolve(".pytest_cache/cache.db"), "binary");
+        Files.writeString(project.resolve("chroma/indexes/data.bin"), "binary");
+        Files.writeString(project.resolve("lucene-indices/index/segments"), "binary");
+        Files.writeString(project.resolve(".cache/tmp/file.cache"), "cachedata");
+        Files.writeString(project.resolve("models/foo/model.bin"), "modelbytes");
         Files.writeString(project.resolve("node_modules/some_module/index.js"), "console.log('x')");
 
         // create a visible file that should be included
@@ -55,7 +67,7 @@ class IgnoreVirtualEnvAndCacheDirectoriesTest {
 
             Path saved = Path.of(result.getResultsPath());
             List<String> totalFiles = Files.readAllLines(saved.resolve("total_files.txt"));
-            assertFalse(totalFiles.stream().anyMatch(s -> s.contains(".venv") || s.contains("venv") || s.contains("venv2") || s.contains(".venv2") || s.contains("env") || s.contains("__pycache__") || s.contains("node_modules")));
+            assertFalse(totalFiles.stream().anyMatch(s -> s.contains(".venv") || s.contains("venv") || s.contains("venv2") || s.contains(".venv2") || s.contains("env") || s.contains("__pycache__") || s.contains("node_modules") || s.contains(".husky") || s.contains(".pytest_cache") || s.contains("chroma") || s.contains("lucene-indices") || s.contains(".cache") || s.contains("models")));
         } finally {
             System.clearProperty("stinger.results.dir");
         }
