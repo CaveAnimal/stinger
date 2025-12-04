@@ -83,7 +83,7 @@ The analysis provides the following metrics:
 stinger/
 ├── src/
 │   ├── main/
-│   │   ├── java/com/caveanimal/stinger/
+│   │   ├── java/com/codecounter/stinger/
 │   │   │   ├── controller/          # REST API and web controllers
 │   │   │   ├── service/              # Business logic
 │   │   │   ├── model/                # Data models

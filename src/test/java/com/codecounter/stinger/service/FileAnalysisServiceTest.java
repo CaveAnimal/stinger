@@ -1,19 +1,20 @@
-package com.caveanimal.stinger.service;
+package com.codecounter.stinger.service;
 
-import com.caveanimal.stinger.model.AnalysisResult;
-import com.caveanimal.stinger.model.FileNode;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+
+import com.codecounter.stinger.model.AnalysisResult;
+import com.codecounter.stinger.model.FileNode;
 
 @SpringBootTest
 class FileAnalysisServiceTest {
@@ -53,14 +54,21 @@ class FileAnalysisServiceTest {
         Path subdir = Files.createDirectory(tempDir.resolve("subdir"));
         Files.writeString(subdir.resolve("README.md"), "# Documentation\n\nSome content");
 
-        AnalysisResult result = fileAnalysisService.analyzeDirectory(tempDir.toString());
+        // avoid saving into repo results/ during tests
+        String resultsDir = tempDir.resolve("results").toString();
+        System.setProperty("stinger.results.dir", resultsDir);
+        try {
+            AnalysisResult result = fileAnalysisService.analyzeDirectory(tempDir.toString());
 
         assertEquals(1, result.getTotalFolders());
         assertEquals(2, result.getTotalFiles());
         assertEquals(1, result.getTotalCodeFiles());
         assertEquals(1, result.getTotalDocFiles());
         assertTrue(result.getTotalLines() > 0);
-        assertTrue(result.getTotalMethods() >= 2);
+            assertTrue(result.getTotalMethods() >= 2);
+        } finally {
+            System.clearProperty("stinger.results.dir");
+        }
     }
 
     @Test

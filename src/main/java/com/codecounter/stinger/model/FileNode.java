@@ -1,4 +1,4 @@
-package com.caveanimal.stinger.model;
+package com.codecounter.stinger.model;
 
 import java.util.ArrayList;
 import java.util.List;
