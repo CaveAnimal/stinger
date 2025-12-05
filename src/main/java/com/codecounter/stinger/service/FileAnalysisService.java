@@ -119,6 +119,8 @@ public class FileAnalysisService {
         ".eslintrc.cjs",
         ".prettierignore",
         "org.junit.jupiter.api.extension.Extension",
+        // some services file names are the fully-qualified class name, store lowercase form too so matching is case-insensitive
+        "org.junit.jupiter.api.extension.extension",
         // exclude some platform/test helper files and common UI font assets by exact name
         "setup_llm.bat",
         "start_llm_service.bat",
