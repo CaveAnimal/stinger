@@ -412,7 +412,8 @@ public class FileAnalysisService {
             // expose saved path in result for callers
             result.setResultsPath(saved.toString());
         } catch (Exception e) {
-            logger.warn("Failed to auto-save analysis results for {}: {}", dirPath, e.getMessage());
+            // include stacktrace to help diagnose saving issues when they occur outside streaming
+            logger.warn("Failed to auto-save analysis results for {}: {}", dirPath, e.getMessage(), e);
         }
 
         logger.info("Finished analysis of directory: {} — files={}, folders={}, codeFiles={}, lines={}, methods={}",
@@ -438,15 +439,24 @@ public class FileAnalysisService {
 
         Set<String> visited = new HashSet<>();
         try {
-            emitter.send(org.springframework.web.servlet.mvc.method.annotation.SseEmitter.event().name("start").data("Start:" + dirPath));
+            // send a start event — if this fails the client likely disconnected and we abort
+            safeSend(emitter, "start", "Start:" + dirPath, true);
+
             analyzeRecursivelyStream(path.toFile(), result, visited, emitter);
-            emitter.send(org.springframework.web.servlet.mvc.method.annotation.SseEmitter.event().name("result").data(result));
+
+            // send final result — abort streaming if send fails
+            safeSend(emitter, "result", result, true);
+
             // Auto-save results and notify client
             try {
                 Path saved = saveAnalysisResults(dirPath);
-                emitter.send(org.springframework.web.servlet.mvc.method.annotation.SseEmitter.event().name("saved").data(saved.toString()));
+                logger.info("Auto-saved analysis results to {} during stream", saved);
+                // attempt to notify client — do NOT abort streaming on notify failure; client may have disconnected
+                boolean sent = safeSend(emitter, "saved", saved.toString(), false);
+                if (!sent) logger.debug("Client did not receive 'saved' event for {} (likely disconnected)", dirPath);
             } catch (Exception e) {
-                logger.warn("Failed to auto-save analysis results for {} during stream: {}", dirPath, e.getMessage());
+                // include stack trace for save problems — this is an application-level issue
+                logger.warn("Failed to auto-save analysis results for {} during stream: {}", dirPath, e.getMessage(), e);
             }
         } catch (IOException ioe) {
             logger.error("Error while streaming analysis for {}: {}", dirPath, ioe.getMessage());
@@ -485,13 +495,8 @@ public class FileAnalysisService {
 
             if (file.isDirectory()) {
                 result.setTotalFolders(result.getTotalFolders() + 1);
-                try {
-                    emitter.send(org.springframework.web.servlet.mvc.method.annotation.SseEmitter.event().name("directory").data(file.getAbsolutePath()));
-                } catch (IOException | IllegalStateException sendEx) {
-                    // If we can't send directory event (client likely disconnected) then abort streaming
-                    logger.debug("Emitter send failure for directory {}: {} — aborting stream", file.getAbsolutePath(), sendEx.getMessage());
-                    throw sendEx instanceof IOException ? (IOException) sendEx : new IOException(sendEx);
-                }
+                // send directory notification to client — abort if client disconnected during control events
+                safeSend(emitter, "directory", file.getAbsolutePath(), true);
                 // skip descending into any 'target' directories - they are usually build outputs
                 if (file.isDirectory() && isIgnoredDirectoryName(file.getName())) {
                     logger.debug("Skipping ignored subdir during streaming analysis: {}", file.getAbsolutePath());
@@ -509,13 +514,15 @@ public class FileAnalysisService {
                 String extension = getFileExtension(file.getName());
                 String fileType = classifyFile(extension);
 
-                if ("code".equals(fileType)) {
+                    if ("code".equals(fileType)) {
                     result.setTotalCodeFiles(result.getTotalCodeFiles() + 1);
-                    try { emitter.send(org.springframework.web.servlet.mvc.method.annotation.SseEmitter.event().name("file").data(file.getAbsolutePath())); } catch (IOException | IllegalStateException e) { logger.debug("failed to send file event (emitter closed?): {}", e.getMessage()); throw new IOException(e); }
+                        // send file event; abort if sender cannot accept (client disconnected)
+                        safeSend(emitter, "file", file.getAbsolutePath(), true);
                     analyzeCodeFile(file, extension, result);
                 } else if ("document".equals(fileType)) {
                     result.setTotalDocFiles(result.getTotalDocFiles() + 1);
-                    try { emitter.send(org.springframework.web.servlet.mvc.method.annotation.SseEmitter.event().name("file").data(file.getAbsolutePath())); } catch (IOException | IllegalStateException e) { logger.debug("failed to send file event (emitter closed?): {}", e.getMessage()); throw new IOException(e); }
+                        // documents: notify client (abort on failure)
+                        safeSend(emitter, "file", file.getAbsolutePath(), true);
                 }
             }
         }
@@ -713,5 +720,31 @@ public class FileAnalysisService {
         if (CODE_EXTENSIONS.contains(extension)) return "code";
         if (DOC_EXTENSIONS.contains(extension)) return "document";
         return "other";
+    }
+
+    /**
+     * Helper to send SSE events safely. If abortOnFailure is true, IO/IllegalState exceptions
+     * are propagated to abort the stream. If false, failures are treated as client disconnects
+     * and logged at DEBUG level so auto-save notification doesn't spam WARN when the client dropped.
+     */
+    private boolean safeSend(org.springframework.web.servlet.mvc.method.annotation.SseEmitter emitter, String eventName, Object data, boolean abortOnFailure) throws IOException {
+        if (emitter == null) return false;
+        try {
+            emitter.send(org.springframework.web.servlet.mvc.method.annotation.SseEmitter.event().name(eventName).data(data));
+            logger.trace("SSE event '{}' sent for data={} (abortOnFailure={})", eventName, data, abortOnFailure);
+            return true;
+        } catch (IOException | IllegalStateException sendEx) {
+            // these are typically because the client disconnected — treat as debug unless requested to abort
+            logger.debug("Emitter send failure for event '{}' data='{}': {} (abort={})", eventName, data, sendEx.getMessage(), abortOnFailure);
+            if (abortOnFailure) {
+                throw sendEx instanceof IOException ? (IOException) sendEx : new IOException(sendEx);
+            }
+            return false;
+        } catch (Exception ex) {
+            // unexpected — log and optionally abort
+            logger.warn("Unexpected error sending SSE event '{}' data='{}': {}", eventName, data, ex.getMessage());
+            if (abortOnFailure) throw new IOException(ex);
+            return false;
+        }
     }
 }
