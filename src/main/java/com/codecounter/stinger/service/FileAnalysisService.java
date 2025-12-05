@@ -63,6 +63,10 @@ public class FileAnalysisService {
         IGNORED_DIR_NAMES.add("models");
         // ignore assistant-proceed-extension workspace/tooling folder
         IGNORED_DIR_NAMES.add("assistant-proceed-extension");
+        // user-requested directories to ignore
+        IGNORED_DIR_NAMES.add("benchmarks");
+        IGNORED_DIR_NAMES.add("test-data-indexmgr");
+        IGNORED_DIR_NAMES.add("embedding_service");
     }
 
     // some directories are better matched by pattern/prefix than exact name
