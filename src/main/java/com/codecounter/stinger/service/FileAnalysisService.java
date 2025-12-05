@@ -56,6 +56,8 @@ public class FileAnalysisService {
         IGNORED_DIR_NAMES.add(".husky");
         IGNORED_DIR_NAMES.add(".pytest_cache");
         IGNORED_DIR_NAMES.add("chroma");
+        // keep chroma_data ignored too (was previously removed accidentally)
+        IGNORED_DIR_NAMES.add("chroma_data");
         IGNORED_DIR_NAMES.add("lucene-indices");
         IGNORED_DIR_NAMES.add(".cache");
         IGNORED_DIR_NAMES.add("models");
