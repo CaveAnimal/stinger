@@ -700,6 +700,8 @@ public class FileAnalysisService {
 
         // pattern: files that begin with 'test' and end with '.csv' should be ignored
         if (name.startsWith("test") && name.endsWith(".csv")) return true;
+        // also ignore CSVs that start with 'sweep' or 'live' (e.g. sweep_2025.csv, live-results.csv)
+        if ((name.startsWith("sweep") || name.startsWith("live")) && name.endsWith(".csv")) return true;
 
         return false;
     }
