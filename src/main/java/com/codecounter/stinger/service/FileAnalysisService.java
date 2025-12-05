@@ -111,7 +111,9 @@ public class FileAnalysisService {
 
     // file extensions to ignore completely (case-insensitive)
     private static final Set<String> IGNORED_FILE_EXTENSIONS = new HashSet<>(Arrays.asList(
-        "idx", "db", "iml", "log", "bak", "bat", "ttf"
+        "idx", "db", "iml", "log", "bak", "bat", "ttf",
+        // common image file extensions to exclude from analysis
+        "png", "jpg", "jpeg", "gif", "bmp", "svg", "webp", "ico", "tif", "tiff", "heic", "avif", "eps", "psd"
     ));
 
     // specific file names to ignore (case-insensitive)
