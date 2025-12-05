@@ -325,7 +325,7 @@ public class FileAnalysisService {
                         continue;
                     }
                     // ignore files named .gitignore explicitly
-                    if (".gitignore".equalsIgnoreCase(f.getName()) || ".gitkeep".equalsIgnoreCase(f.getName())) {
+                    if (".gitignore".equalsIgnoreCase(f.getName()) || ".gitkeep".equalsIgnoreCase(f.getName()) || ".env.example".equalsIgnoreCase(f.getName())) {
                         logger.debug("Skipping file named .gitignore: {}", f.getAbsolutePath());
                         continue;
                     }
@@ -348,7 +348,7 @@ public class FileAnalysisService {
                     } else {
                         // ignore .gitignore file in fallback path too
                         visited.add(absolute);
-                        if (f.getName() != null && (".gitignore".equalsIgnoreCase(f.getName()) || ".gitkeep".equalsIgnoreCase(f.getName()))) {
+                        if (f.getName() != null && (".gitignore".equalsIgnoreCase(f.getName()) || ".gitkeep".equalsIgnoreCase(f.getName()) || ".env.example".equalsIgnoreCase(f.getName()))) {
                             logger.debug("Skipping file named .gitignore: {}", absolute);
                             continue;
                         }
@@ -453,7 +453,7 @@ public class FileAnalysisService {
         for (File file : files) {
             if (file.isHidden()) continue;
             // skip any file named .gitignore explicitly
-            if (file.isFile() && (".gitignore".equalsIgnoreCase(file.getName()) || ".gitkeep".equalsIgnoreCase(file.getName()))) {
+            if (file.isFile() && (".gitignore".equalsIgnoreCase(file.getName()) || ".gitkeep".equalsIgnoreCase(file.getName()) || ".env.example".equalsIgnoreCase(file.getName()))) {
                 logger.debug("Skipping file named .gitignore during streaming: {}", file.getAbsolutePath());
                 continue;
             }
@@ -548,7 +548,7 @@ public class FileAnalysisService {
                 }
                 } else {
                     // ignore files named .gitignore explicitly
-                    if (".gitignore".equalsIgnoreCase(file.getName()) || ".gitkeep".equalsIgnoreCase(file.getName())) {
+                    if (".gitignore".equalsIgnoreCase(file.getName()) || ".gitkeep".equalsIgnoreCase(file.getName()) || ".env.example".equalsIgnoreCase(file.getName())) {
                         logger.debug("Skipping file named .gitignore during analysis: {}", file.getAbsolutePath());
                         continue;
                     }
