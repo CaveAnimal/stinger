@@ -274,6 +274,25 @@ function analyzeDirectoryStream(path) {
         } catch (err) {
             console.warn('Could not parse result event', err);
         }
+        // keep the connection open — wait for the 'saved' or 'done' event before closing
+    });
+
+    // saved event includes resultsPath and a compact summary — show link/info and close connection
+    es.addEventListener('saved', (e) => {
+        try {
+            const info = (typeof e.data === 'string') ? JSON.parse(e.data) : e.data;
+            const resultsDiv = document.getElementById('analysisResults');
+            if (resultsDiv) {
+                const savedNotice = document.createElement('div');
+                savedNotice.className = 'analysis-saved';
+                const rp = info.resultsPath || info.resultsPath || e.data;
+                savedNotice.innerHTML = `Saved results: <code>${escapeHtml(rp)}</code>`;
+                // append to results (not replacing) so the summary is still visible
+                resultsDiv.appendChild(savedNotice);
+            }
+        } catch (err) {
+            console.warn('Could not parse saved event', err);
+        }
         es.close();
     });
 
@@ -284,6 +303,11 @@ function analyzeDirectoryStream(path) {
             // If EventSource encounters an error it may send a generic event; leave existing results
         }
         es.close();
+    });
+
+    // done event (controller-level completion) - ensure connection closed
+    es.addEventListener('done', (e) => {
+        try { es.close(); } catch (ex) { /* ignore */ }
     });
 }
 

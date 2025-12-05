@@ -453,16 +453,28 @@ public class FileAnalysisService {
 
             analyzeRecursivelyStream(path.toFile(), result, visited, emitter);
 
-            // send final result — abort streaming if send fails
-            safeSend(emitter, "result", result, true);
+            // send a compact summary result (avoid sending the full object for large runs)
+            Map<String, Object> summary = new LinkedHashMap<>();
+            summary.put("path", result.getPath());
+            summary.put("totalFolders", result.getTotalFolders());
+            summary.put("totalFiles", result.getTotalFiles());
+            summary.put("totalCodeFiles", result.getTotalCodeFiles());
+            summary.put("totalDocFiles", result.getTotalDocFiles());
+            summary.put("totalLines", result.getTotalLines());
+            summary.put("totalMethods", result.getTotalMethods());
+            boolean sentResult = safeSend(emitter, "result", summary, false);
+            if (sentResult) logger.info("Sent result summary to client for {}", dirPath); else logger.debug("Result summary not delivered to client for {} (likely disconnected)", dirPath);
 
             // Auto-save results and notify client
             try {
                 Path saved = saveAnalysisResults(dirPath);
                 logger.info("Auto-saved analysis results to {} during stream", saved);
-                // attempt to notify client — do NOT abort streaming on notify failure; client may have disconnected
-                boolean sent = safeSend(emitter, "saved", saved.toString(), false);
-                if (!sent) logger.debug("Client did not receive 'saved' event for {} (likely disconnected)", dirPath);
+                // notify client with saved info and a concise summary so the client can display quickly
+                Map<String,Object> savedInfo = new LinkedHashMap<>();
+                savedInfo.put("resultsPath", saved.toString());
+                savedInfo.putAll(summary);
+                boolean sentSaved = safeSend(emitter, "saved", savedInfo, false);
+                if (sentSaved) logger.info("Notified client of saved results for {}", dirPath); else logger.debug("Client did not receive 'saved' event for {} (likely disconnected)", dirPath);
             } catch (Exception e) {
                 // include stack trace for save problems — this is an application-level issue
                 logger.warn("Failed to auto-save analysis results for {} during stream: {}", dirPath, e.getMessage(), e);
