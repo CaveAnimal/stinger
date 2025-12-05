@@ -36,13 +36,12 @@ public class FileAnalysisService {
     private static final Logger logger = LoggerFactory.getLogger(FileAnalysisService.class);
     
     private static final Set<String> CODE_EXTENSIONS = new HashSet<>(Arrays.asList(
-        "java", "js", "ts", "py", "cpp", "c", "h", "cs", "go", "rb", "php", 
+        "java", "js", "ts", "py", "cpp", "cc", "c", "h", "cs", "go", "rb", "php", 
         "swift", "kt", "rs", "scala", "sh", "bash", "ps1", "sql", "html", 
         "css", "jsx", "tsx", "vue", "xml", "json", "yaml", "yml", "properties"
     ));
-    
     private static final Set<String> DOC_EXTENSIONS = new HashSet<>(Arrays.asList(
-        "md", "txt", "rst", "adoc", "pdf", "doc", "docx"
+        "md", "txt", "rst", "adoc", "pdf", "doc", "docx", "proto"
     ));
 
     // directories to ignore entirely (case-insensitive)
@@ -57,7 +56,6 @@ public class FileAnalysisService {
         IGNORED_DIR_NAMES.add(".husky");
         IGNORED_DIR_NAMES.add(".pytest_cache");
         IGNORED_DIR_NAMES.add("chroma");
-        IGNORED_DIR_NAMES.add("chroma_data");
         IGNORED_DIR_NAMES.add("lucene-indices");
         IGNORED_DIR_NAMES.add(".cache");
         IGNORED_DIR_NAMES.add("models");
@@ -122,6 +120,7 @@ public class FileAnalysisService {
         ".gitkeep",
         ".env.example",
         "chroma_config.env",
+        ".eslintrc.cjs",
         ".eslintrc.cjs",
         ".prettierignore",
         "org.junit.jupiter.api.extension.Extension",
@@ -196,7 +195,10 @@ public class FileAnalysisService {
         List<String> otherFiles = new ArrayList<>();
 
         // walk with protection against loops
+        long walkStart = System.currentTimeMillis();
         walkAndCollect(root.toFile(), visited, folders, allFiles, codeFiles, docFiles, otherFiles);
+        long walkElapsed = System.currentTimeMillis() - walkStart;
+        logger.debug("walkAndCollect finished for {} — folders={}, totalFiles={}, codeFiles={}, docFiles={}, otherFiles={}, elapsed={}ms", dirPath, folders.size(), allFiles.size(), codeFiles.size(), docFiles.size(), otherFiles.size(), walkElapsed);
 
         // Build results directory structure
         // Respect configurable results dir (may be set by tests via a Spring property or runtime System property)
@@ -222,6 +224,7 @@ public class FileAnalysisService {
         Files.createDirectories(outFolder);
 
         // produce output files
+        long writeStart = System.currentTimeMillis();
         writeList(outFolder.resolve("folders.txt"), folders);
         writeList(outFolder.resolve("total_files.txt"), allFiles);
         writeList(outFolder.resolve("code_files.txt"), codeFiles);
@@ -239,7 +242,8 @@ public class FileAnalysisService {
         meta.put("otherFiles", String.valueOf(otherFiles.size()));
         writeKeyValue(outFolder.resolve("summary.txt"), meta);
 
-        logger.info("Saved analysis results to {}", outFolder.toString());
+        long writeElapsed = System.currentTimeMillis() - writeStart;
+        logger.info("Saved analysis results to {} (files={}, elapsedMs={})", outFolder.toString(), allFiles.size(), writeElapsed);
         return outFolder;
     }
 
@@ -318,6 +322,7 @@ public class FileAnalysisService {
                                 List<String> codeFiles,
                                 List<String> docFiles,
                                 List<String> otherFiles) {
+        // tracking time for per-directory operations (if needed)
         try {
             String canonical = directory.getCanonicalPath();
             if (visited.contains(canonical)) return;
@@ -400,6 +405,7 @@ public class FileAnalysisService {
         }
 
         logger.info("Starting analysis of directory: {}", dirPath);
+        long startTime = System.currentTimeMillis();
 
         // Use a visited set to prevent infinite recursion when there are symlink loops
         Set<String> visited = new HashSet<>();
@@ -416,8 +422,9 @@ public class FileAnalysisService {
             logger.warn("Failed to auto-save analysis results for {}: {}", dirPath, e.getMessage(), e);
         }
 
-        logger.info("Finished analysis of directory: {} — files={}, folders={}, codeFiles={}, lines={}, methods={}",
-            dirPath, result.getTotalFiles(), result.getTotalFolders(), result.getTotalCodeFiles(), result.getTotalLines(), result.getTotalMethods());
+            long elapsed = System.currentTimeMillis() - startTime;
+            logger.info("Finished analysis of directory: {} — files={}, folders={}, codeFiles={}, lines={}, methods={} (elapsed={}ms)",
+                dirPath, result.getTotalFiles(), result.getTotalFolders(), result.getTotalCodeFiles(), result.getTotalLines(), result.getTotalMethods(), elapsed);
 
         return result;
     }
@@ -470,6 +477,7 @@ public class FileAnalysisService {
     }
 
     private void analyzeRecursivelyStream(File directory, AnalysisResult result, Set<String> visited, org.springframework.web.servlet.mvc.method.annotation.SseEmitter emitter) throws IOException {
+        long dirStart = System.currentTimeMillis();
         try {
             String realPath = directory.getCanonicalPath();
             if (visited.contains(realPath)) {
@@ -526,9 +534,16 @@ public class FileAnalysisService {
                 }
             }
         }
+        long dirElapsed = System.currentTimeMillis() - dirStart;
+        if (dirElapsed > 2000) {
+            logger.info("Long streaming processing for directory {} ({}ms) — consider profiling large dirs", directory.getAbsolutePath(), dirElapsed);
+        } else {
+            logger.trace("Finished streaming directory {} in {}ms", directory.getAbsolutePath(), dirElapsed);
+        }
     }
 
     private void analyzeRecursively(File directory, AnalysisResult result, Set<String> visited) {
+        long dirStart = System.currentTimeMillis();
         try {
             String realPath = directory.getCanonicalPath();
             if (visited.contains(realPath)) {
@@ -609,9 +624,16 @@ public class FileAnalysisService {
                 }
             }
         }
+        long dirElapsed = System.currentTimeMillis() - dirStart;
+        if (dirElapsed > 2000) {
+            logger.info("Long analysis for directory {} took {}ms — files/folders: files={}, folders={}", directory.getAbsolutePath(), dirElapsed, result.getTotalFiles(), result.getTotalFolders());
+        } else {
+            logger.trace("Analyzed directory {} in {}ms", directory.getAbsolutePath(), dirElapsed);
+        }
     }
 
     private void analyzeCodeFile(File file, String extension, AnalysisResult result) {
+        long fileStart = System.currentTimeMillis();
         try {
             long lineCount = countLines(file);
             result.setTotalLines(result.getTotalLines() + lineCount);
@@ -622,6 +644,12 @@ public class FileAnalysisService {
             } else {
                 int methodCount = estimateMethodCount(file, extension);
                 result.setTotalMethods(result.getTotalMethods() + methodCount);
+            }
+            long fileElapsed = System.currentTimeMillis() - fileStart;
+            if (fileElapsed > 500) {
+                logger.info("Slow analyzeCodeFile for {} ({}ms) — lines={}, ext={}", file.getAbsolutePath(), fileElapsed, lineCount, extension);
+            } else {
+                logger.trace("analyzeCodeFile {} completed in {}ms", file.getAbsolutePath(), fileElapsed);
             }
         } catch (java.nio.charset.MalformedInputException mie) {
             // binary or undecodable file — skip method counting and lines for this file
