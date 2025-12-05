@@ -107,7 +107,24 @@ public class FileAnalysisService {
 
     // file extensions to ignore completely (case-insensitive)
     private static final Set<String> IGNORED_FILE_EXTENSIONS = new HashSet<>(Arrays.asList(
-        "idx", "db", "iml", "log", "bak"
+        "idx", "db", "iml", "log", "bak", "bat", "ttf"
+    ));
+
+    // specific file names to ignore (case-insensitive)
+    private static final Set<String> IGNORED_FILE_NAMES = new HashSet<>(Arrays.asList(
+        ".gitignore",
+        ".gitkeep",
+        ".env.example",
+        "chroma_config.env",
+        ".eslintrc.cjs",
+        ".prettierignore",
+        "org.junit.jupiter.api.extension.Extension",
+        // exclude some platform/test helper files and common UI font assets by exact name
+        "setup_llm.bat",
+        "start_llm_service.bat",
+        "start_llm_service_mistral.bat",
+        "view_llm_logs.bat",
+        "codicon-dcmgc-ay.ttf"
     ));
 
     // configurable base results dir. Tests may set system / spring property `stinger.results.dir`
@@ -324,9 +341,9 @@ public class FileAnalysisService {
                         logger.debug("Skipping ignored file by extension: {}", f.getAbsolutePath());
                         continue;
                     }
-                    // ignore files named .gitignore explicitly
-                    if (".gitignore".equalsIgnoreCase(f.getName()) || ".gitkeep".equalsIgnoreCase(f.getName()) || ".env.example".equalsIgnoreCase(f.getName())) {
-                        logger.debug("Skipping file named .gitignore: {}", f.getAbsolutePath());
+                    // ignore certain well-known filenames (e.g. .gitignore/.gitkeep/.env.example)
+                    if (isIgnoredFileName(f.getName())) {
+                        logger.debug("Skipping ignored filename: {}", f.getAbsolutePath());
                         continue;
                     }
                     visited.add(fcanon);
@@ -348,8 +365,8 @@ public class FileAnalysisService {
                     } else {
                         // ignore .gitignore file in fallback path too
                         visited.add(absolute);
-                        if (f.getName() != null && (".gitignore".equalsIgnoreCase(f.getName()) || ".gitkeep".equalsIgnoreCase(f.getName()) || ".env.example".equalsIgnoreCase(f.getName()))) {
-                            logger.debug("Skipping file named .gitignore: {}", absolute);
+                        if (f.getName() != null && isIgnoredFileName(f.getName())) {
+                            logger.debug("Skipping ignored filename (fallback): {}", absolute);
                             continue;
                         }
                         allFiles.add(absolute);
@@ -452,9 +469,9 @@ public class FileAnalysisService {
 
         for (File file : files) {
             if (file.isHidden()) continue;
-            // skip any file named .gitignore explicitly
-            if (file.isFile() && (".gitignore".equalsIgnoreCase(file.getName()) || ".gitkeep".equalsIgnoreCase(file.getName()) || ".env.example".equalsIgnoreCase(file.getName()))) {
-                logger.debug("Skipping file named .gitignore during streaming: {}", file.getAbsolutePath());
+            // skip any known-named files (e.g. .gitignore/.gitkeep/.env.example)
+            if (file.isFile() && isIgnoredFileName(file.getName())) {
+                logger.debug("Skipping ignored filename during streaming: {}", file.getAbsolutePath());
                 continue;
             }
 
@@ -547,9 +564,9 @@ public class FileAnalysisService {
                     logger.error("Stack overflow while recursing into directory {} — possible cycle", file.getAbsolutePath());
                 }
                 } else {
-                    // ignore files named .gitignore explicitly
-                    if (".gitignore".equalsIgnoreCase(file.getName()) || ".gitkeep".equalsIgnoreCase(file.getName()) || ".env.example".equalsIgnoreCase(file.getName())) {
-                        logger.debug("Skipping file named .gitignore during analysis: {}", file.getAbsolutePath());
+                    // ignore well-known filenames that should not be counted
+                    if (isIgnoredFileName(file.getName())) {
+                        logger.debug("Skipping ignored filename during analysis: {}", file.getAbsolutePath());
                         continue;
                     }
                     // ignore files with ignored extensions (e.g. .idx, .db)
@@ -666,6 +683,12 @@ public class FileAnalysisService {
             return fileName.substring(lastDot + 1).toLowerCase();
         }
         return "";
+    }
+
+    private boolean isIgnoredFileName(String rawName) {
+        if (rawName == null) return false;
+        String name = rawName.toLowerCase();
+        return IGNORED_FILE_NAMES.contains(name);
     }
 
     private String classifyFile(String extension) {
