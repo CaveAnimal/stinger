@@ -694,8 +694,16 @@ public class FileAnalysisService {
     private boolean isIgnoredFileName(String rawName) {
         if (rawName == null) return false;
         String name = rawName.toLowerCase();
-        return IGNORED_FILE_NAMES.contains(name);
+
+        // check explicit names first
+        if (IGNORED_FILE_NAMES.contains(name)) return true;
+
+        // pattern: files that begin with 'test' and end with '.csv' should be ignored
+        if (name.startsWith("test") && name.endsWith(".csv")) return true;
+
+        return false;
     }
+
 
     private String classifyFile(String extension) {
         if (CODE_EXTENSIONS.contains(extension)) return "code";
