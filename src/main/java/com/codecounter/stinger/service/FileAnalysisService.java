@@ -36,12 +36,23 @@ public class FileAnalysisService {
     private static final Logger logger = LoggerFactory.getLogger(FileAnalysisService.class);
     
     private static final Set<String> CODE_EXTENSIONS = new HashSet<>(Arrays.asList(
-        "java", "js", "ts", "py", "cpp", "cc", "c", "h", "cs", "go", "rb", "php", 
-        "swift", "kt", "rs", "scala", "sh", "bash", "ps1", "sql", "html", 
-        "css", "jsx", "tsx", "vue", "xml", "json", "yaml", "yml", "properties"
+        // General / Web
+        "java", "js", "ts", "py", "cpp", "cc", "c", "h", "hpp", "cs", "go", "rb", "php", 
+        "swift", "kt", "kts", "rs", "scala", "sh", "bash", "zsh", "ps1", "sql", "html", 
+        "css", "jsx", "tsx", "vue", "xml", "json", "yaml", "yml", "properties", "toml", "ini",
+        // Build / Config
+        "gradle", "groovy", "bzl", "bazel", "cmake", "make", "mk", "dockerfile", "vagrantfile", "jenkinsfile",
+        "conf", "cfg", "def", "map", "ld",
+        // Scripting / Other
+        "pl", "pm", "tcl", "lua", "r", "m", "mm", "dart", "elm", "erl", "hrl", "ex", "exs",
+        "fs", "fsx", "fsi", "hs", "lhs", "ml", "mli", "clj", "cljs", "edn", "lisp", "el", "scm",
+        "vb", "vbs", "asm", "s", "sol", "vy", "tf", "hcl", "json5"
     ));
     private static final Set<String> DOC_EXTENSIONS = new HashSet<>(Arrays.asList(
-        "md", "txt", "rst", "adoc", "pdf", "doc", "docx", "proto"
+        "md", "markdown", "txt", "text", "rst", "adoc", "asciidoc", "pdf", "doc", "docx", 
+        "rtf", "odt", "tex", "bib", "ppt", "pptx", "xls", "xlsx", "csv", "tsv", 
+        "license", "notice", "contributing", "readme", "changelog", "authors", "owners", "codeowners",
+        "proto", "graphql"
     ));
 
     // directories to ignore entirely (case-insensitive)
@@ -67,6 +78,8 @@ public class FileAnalysisService {
         IGNORED_DIR_NAMES.add("benchmarks");
         IGNORED_DIR_NAMES.add("test-data-indexmgr");
         IGNORED_DIR_NAMES.add("embedding_service");
+        // docker-related folders should generally be ignored (often large and infra-related)
+        IGNORED_DIR_NAMES.add("docker");
     }
 
     // some directories are better matched by pattern/prefix than exact name
@@ -111,9 +124,21 @@ public class FileAnalysisService {
 
     // file extensions to ignore completely (case-insensitive)
     private static final Set<String> IGNORED_FILE_EXTENSIONS = new HashSet<>(Arrays.asList(
-        "idx", "db", "iml", "log", "bak", "bat", "ttf",
-        // common image file extensions to exclude from analysis
-        "png", "jpg", "jpeg", "gif", "bmp", "svg", "webp", "ico", "tif", "tiff", "heic", "avif", "eps", "psd"
+        // Metadata / IDE / System
+        "idx", "db", "iml", "log", "bak", "bat", "tmp", "temp", "swp", "ds_store", "desktop",
+        // Images / Media
+        "png", "jpg", "jpeg", "gif", "bmp", "svg", "webp", "ico", "tif", "tiff", "heic", "avif", "eps", "psd",
+        "mp3", "wav", "mp4", "avi", "mov", "flv", "wmv", "mkv", "webm",
+        // Fonts
+        "ttf", "otf", "woff", "woff2", "eot",
+        // Archives / Binaries
+        "zip", "tar", "gz", "bz2", "xz", "7z", "rar", "jar", "war", "ear", "iso", "img",
+        "exe", "dll", "so", "dylib", "bin", "o", "obj", "a", "lib", "class", "pyc", "pyd",
+        // Data / Models (TensorFlow/ML)
+        "pb", "pbtxt", "tflite", "ckpt", "h5", "hdf5", "keras", "onnx", "pt", "pth", "npy", "npz", "pkl", "joblib",
+        "parquet", "avro", "orc", "mindrecord", "tfrecord",
+        // Lock files
+        "lock"
     ));
 
     // specific file names to ignore (case-insensitive)
@@ -135,6 +160,13 @@ public class FileAnalysisService {
         "view_llm_logs.bat",
         "codicon-dcmgc-ay.ttf"
     ));
+
+    // common Docker filenames and compose files are infra; treat as ignored by default
+    static {
+        IGNORED_FILE_NAMES.add("dockerfile");
+        IGNORED_FILE_NAMES.add("docker-compose.yml");
+        IGNORED_FILE_NAMES.add("docker-compose.yaml");
+    }
 
     // configurable base results dir. Tests may set system / spring property `stinger.results.dir`
     // to point to a temporary location so tests do not write into the repo's ./code_counter_results/ folder.
@@ -177,12 +209,35 @@ public class FileAnalysisService {
         return nodes;
     }
 
+    private Path getPersistentSummaryPath(String dirPath) throws IOException {
+        // Build results directory structure
+        // Respect configurable results dir (may be set by tests via a Spring property or runtime System property)
+        String runtimeOverride = System.getProperty("stinger.results.dir");
+        Path resultsRoot = runtimeOverride != null && !runtimeOverride.isEmpty() ? Paths.get(runtimeOverride) : Paths.get(resultsDirProperty);
+        if (!resultsRoot.isAbsolute()) {
+            Path appRoot = Paths.get(new File(".").getCanonicalPath());
+            resultsRoot = appRoot.resolve(resultsDirProperty);
+        }
+        Files.createDirectories(resultsRoot);
+
+        // Use last folder name from path (not the complete path), then sanitize
+        Path inputPath = Paths.get(dirPath);
+        String lastName = inputPath.getFileName() != null ? inputPath.getFileName().toString() : inputPath.toString();
+        String sanitized = sanitizePathForFolder(lastName);
+        Path rootFolder = resultsRoot.resolve(sanitized);
+        return rootFolder.resolve("summary.txt");
+    }
+
     /**
      * Save detailed analysis lists (folders, all files, code files, documents, other files)
     * to the ./code_counter_results/<sanitized-root>/<YYYY_MM_DD>_alpha/ directory under application working directory.
      * Returns the path to the created results folder.
      */
     public Path saveAnalysisResults(String dirPath) throws IOException {
+        return saveAnalysisResults(dirPath, null);
+    }
+
+    public Path saveAnalysisResults(String dirPath, AnalysisResult analysisResult) throws IOException {
         Path root = Paths.get(dirPath);
         if (!Files.exists(root) || !Files.isDirectory(root)) {
             throw new IOException("Invalid directory path: " + dirPath);
@@ -202,21 +257,8 @@ public class FileAnalysisService {
         long walkElapsed = System.currentTimeMillis() - walkStart;
         logger.debug("walkAndCollect finished for {} — folders={}, totalFiles={}, codeFiles={}, docFiles={}, otherFiles={}, elapsed={}ms", dirPath, folders.size(), allFiles.size(), codeFiles.size(), docFiles.size(), otherFiles.size(), walkElapsed);
 
-        // Build results directory structure
-        // Respect configurable results dir (may be set by tests via a Spring property or runtime System property)
-        String runtimeOverride = System.getProperty("stinger.results.dir");
-        Path resultsRoot = runtimeOverride != null && !runtimeOverride.isEmpty() ? Paths.get(runtimeOverride) : Paths.get(resultsDirProperty);
-        if (!resultsRoot.isAbsolute()) {
-            Path appRoot = Paths.get(new File(".").getCanonicalPath());
-            resultsRoot = appRoot.resolve(resultsDirProperty);
-        }
-        Files.createDirectories(resultsRoot);
-
-        // Use last folder name from path (not the complete path), then sanitize
-        Path inputPath = Paths.get(dirPath);
-        String lastName = inputPath.getFileName() != null ? inputPath.getFileName().toString() : inputPath.toString();
-        String sanitized = sanitizePathForFolder(lastName);
-        Path rootFolder = resultsRoot.resolve(sanitized);
+        Path persistentSummary = getPersistentSummaryPath(dirPath);
+        Path rootFolder = persistentSummary.getParent();
         Files.createDirectories(rootFolder);
 
         // date folder with alpha suffix
@@ -242,7 +284,49 @@ public class FileAnalysisService {
         meta.put("codeFiles", String.valueOf(codeFiles.size()));
         meta.put("docFiles", String.valueOf(docFiles.size()));
         meta.put("otherFiles", String.valueOf(otherFiles.size()));
+        
+        long codeLines = 0L;
+        long docLines = 0L;
+
+        if (analysisResult != null) {
+            codeLines = analysisResult.getTotalCodeLines();
+            docLines = analysisResult.getTotalDocLines();
+            meta.put("totalMethods", String.valueOf(analysisResult.getTotalMethods()));
+        } else {
+            // compute total lines per category so summary includes code/doc line counts
+            for (String p : codeFiles) {
+                try {
+                    codeLines += countLines(new File(p));
+                } catch (Exception e) {
+                    logger.debug("Failed to count lines for code file {}: {}", p, e.getMessage());
+                }
+            }
+            for (String p : docFiles) {
+                try {
+                    docLines += countLines(new File(p));
+                } catch (Exception e) {
+                    logger.debug("Failed to count lines for doc file {}: {}", p, e.getMessage());
+                }
+            }
+        }
+
+        meta.put("totalCodeLines", String.valueOf(codeLines));
+        meta.put("totalDocLines", String.valueOf(docLines));
+        meta.put("totalLines", String.valueOf(codeLines + docLines));
         writeKeyValue(outFolder.resolve("summary.txt"), meta);
+
+        // Update persistent summary in the application folder
+        try {
+            Map<String, String> persistentMap = new LinkedHashMap<>();
+            if (Files.exists(persistentSummary)) {
+                persistentMap = readKeyValue(persistentSummary);
+            }
+            // Merge current meta into persistent map (overwriting existing keys with new values)
+            persistentMap.putAll(meta);
+            writeKeyValue(persistentSummary, persistentMap);
+        } catch (Exception e) {
+            logger.warn("Failed to update persistent summary file: {}", e.getMessage());
+        }
 
         long writeElapsed = System.currentTimeMillis() - writeStart;
         logger.info("Saved analysis results to {} (files={}, elapsedMs={})", outFolder.toString(), allFiles.size(), writeElapsed);
@@ -265,6 +349,18 @@ public class FileAnalysisService {
                 w.newLine();
             }
         }
+    }
+
+    private Map<String, String> readKeyValue(Path p) throws IOException {
+        Map<String, String> map = new LinkedHashMap<>();
+        List<String> lines = Files.readAllLines(p, StandardCharsets.UTF_8);
+        for (String line : lines) {
+            String[] parts = line.split(":", 2);
+            if (parts.length == 2) {
+                map.put(parts[0].trim(), parts[1].trim());
+            }
+        }
+        return map;
     }
 
     private String sanitizePathForFolder(String path) {
@@ -362,14 +458,17 @@ public class FileAnalysisService {
                         continue;
                     }
                     visited.add(fcanon);
-                    allFiles.add(fcanon);
                     String ext = getFileExtension(f.getName());
                     String type = classifyFile(ext);
-                    switch (type) {
-                        case "code": codeFiles.add(fcanon); break;
-                        case "document": docFiles.add(fcanon); break;
-                        default: otherFiles.add(fcanon); break;
+                    
+                    if ("code".equals(type)) {
+                        allFiles.add(fcanon);
+                        codeFiles.add(fcanon);
+                    } else if ("document".equals(type)) {
+                        allFiles.add(fcanon);
+                        docFiles.add(fcanon);
                     }
+                    // else: ignore completely (do not add to allFiles or otherFiles)
                 }
             } catch (IOException ioe) {
                 // if canonicalization fails, still process
@@ -384,12 +483,17 @@ public class FileAnalysisService {
                             logger.debug("Skipping ignored filename (fallback): {}", absolute);
                             continue;
                         }
-                        allFiles.add(absolute);
+                        
                         String ext = getFileExtension(f.getName());
                         String type = classifyFile(ext);
-                        if ("code".equals(type)) codeFiles.add(absolute);
-                        else if ("document".equals(type)) docFiles.add(absolute);
-                        else otherFiles.add(absolute);
+                        if ("code".equals(type)) {
+                            allFiles.add(absolute);
+                            codeFiles.add(absolute);
+                        } else if ("document".equals(type)) {
+                            allFiles.add(absolute);
+                            docFiles.add(absolute);
+                        }
+                        // else ignore
                     }
                 }
             }
@@ -415,10 +519,30 @@ public class FileAnalysisService {
 
         // Save results automatically into code_counter_results/<last-folder>/YYYY_MM_DD_alpha
         try {
-            Path saved = saveAnalysisResults(dirPath);
+            Path saved = saveAnalysisResults(dirPath, result);
             logger.info("Auto-saved analysis results to {}", saved);
             // expose saved path in result for callers
             result.setResultsPath(saved.toString());
+            // attempt to read the auto-saved summary and copy computed line totals back into the AnalysisResult
+            Path summary = saved.resolve("summary.txt");
+            if (Files.exists(summary)) {
+                try {
+                    List<String> lines = Files.readAllLines(summary, StandardCharsets.UTF_8);
+                    for (String l : lines) {
+                        if (l.startsWith("totalCodeLines:")) {
+                            String v = l.substring(l.indexOf(':') + 1).trim();
+                            try { result.setTotalCodeLines(Long.parseLong(v)); } catch (NumberFormatException nfe) {}
+                        } else if (l.startsWith("totalDocLines:")) {
+                            String v = l.substring(l.indexOf(':') + 1).trim();
+                            try { result.setTotalDocLines(Long.parseLong(v)); } catch (NumberFormatException nfe) {}
+                        }
+                    }
+                    // keep totalLines consistent
+                    result.setTotalLines(result.getTotalCodeLines() + result.getTotalDocLines());
+                } catch (Exception e) {
+                    logger.debug("Failed to read summary.txt from saved results {}: {}", summary.toString(), e.getMessage());
+                }
+            }
         } catch (Exception e) {
             // include stacktrace to help diagnose saving issues when they occur outside streaming
             logger.warn("Failed to auto-save analysis results for {}: {}", dirPath, e.getMessage(), e);
@@ -451,7 +575,44 @@ public class FileAnalysisService {
             // send a start event — if this fails the client likely disconnected and we abort
             safeSend(emitter, "start", "Start:" + dirPath, true);
 
-            analyzeRecursivelyStream(path.toFile(), result, visited, emitter);
+            // Attempt to read totals from persistent summary.txt instead of computing them
+            AnalysisResult totals = new AnalysisResult();
+            try {
+                Path persistentSummary = getPersistentSummaryPath(dirPath);
+                if (Files.exists(persistentSummary)) {
+                    Map<String, String> summaryMap = readKeyValue(persistentSummary);
+                    totals.setTotalFolders(parseIntSafe(summaryMap.get("folders")));
+                    totals.setTotalFiles(parseIntSafe(summaryMap.get("totalFiles")));
+                    totals.setTotalCodeFiles(parseIntSafe(summaryMap.get("codeFiles")));
+                    totals.setTotalDocFiles(parseIntSafe(summaryMap.get("docFiles")));
+                    totals.setTotalOtherFiles(parseIntSafe(summaryMap.get("otherFiles")));
+                    totals.setTotalLines(parseLongSafe(summaryMap.get("totalLines")));
+                    totals.setTotalCodeLines(parseLongSafe(summaryMap.get("totalCodeLines")));
+                    totals.setTotalDocLines(parseLongSafe(summaryMap.get("totalDocLines")));
+                    totals.setTotalMethods(parseIntSafe(summaryMap.get("totalMethods")));
+                    logger.info("Loaded totals from persistent summary: {}", persistentSummary);
+                } else {
+                    logger.info("No persistent summary found at {}, percentages will be unavailable.", persistentSummary);
+                }
+            } catch (Exception e) {
+                logger.warn("Failed to load persistent summary: {}", e.getMessage());
+            }
+
+            Map<String, Object> totalsSummary = new LinkedHashMap<>();
+            totalsSummary.put("path", totals.getPath() == null ? dirPath : totals.getPath());
+            totalsSummary.put("totalFolders", totals.getTotalFolders());
+            totalsSummary.put("totalFiles", totals.getTotalFiles());
+            totalsSummary.put("totalCodeFiles", totals.getTotalCodeFiles());
+            totalsSummary.put("totalDocFiles", totals.getTotalDocFiles());
+            totalsSummary.put("totalOtherFiles", totals.getTotalOtherFiles());
+            totalsSummary.put("totalLines", totals.getTotalLines());
+            totalsSummary.put("totalCodeLines", totals.getTotalCodeLines());
+            totalsSummary.put("totalDocLines", totals.getTotalDocLines());
+            totalsSummary.put("totalMethods", totals.getTotalMethods());
+            // best-effort send totals so UI can draw progress bars with known totals
+            safeSend(emitter, "totals", totalsSummary, false);
+
+            analyzeRecursivelyStream(path.toFile(), result, visited, totals, emitter);
 
             // send a compact summary result (avoid sending the full object for large runs)
             Map<String, Object> summary = new LinkedHashMap<>();
@@ -460,21 +621,62 @@ public class FileAnalysisService {
             summary.put("totalFiles", result.getTotalFiles());
             summary.put("totalCodeFiles", result.getTotalCodeFiles());
             summary.put("totalDocFiles", result.getTotalDocFiles());
+            summary.put("totalOtherFiles", result.getTotalOtherFiles());
             summary.put("totalLines", result.getTotalLines());
+            summary.put("totalCodeLines", result.getTotalCodeLines());
+            summary.put("totalDocLines", result.getTotalDocLines());
             summary.put("totalMethods", result.getTotalMethods());
             boolean sentResult = safeSend(emitter, "result", summary, false);
             if (sentResult) logger.info("Sent result summary to client for {}", dirPath); else logger.debug("Result summary not delivered to client for {} (likely disconnected)", dirPath);
 
             // Auto-save results and notify client
             try {
-                Path saved = saveAnalysisResults(dirPath);
+                Path saved = saveAnalysisResults(dirPath, result);
                 logger.info("Auto-saved analysis results to {} during stream", saved);
                 // notify client with saved info and a concise summary so the client can display quickly
                 Map<String,Object> savedInfo = new LinkedHashMap<>();
                 savedInfo.put("resultsPath", saved.toString());
                 savedInfo.putAll(summary);
+                // include a compact list of saved file paths (first N entries) so the client
+                // can display saved items under File Explorer without needing to show the full path
+                try {
+                    final int MAX_SAVED_FILES = 120; // cap to keep the payload small
+                    List<String> savedFiles = new ArrayList<>();
+                    Path codeList = saved.resolve("code_files.txt");
+                    Path docList = saved.resolve("document_files.txt");
+                    Path otherList = saved.resolve("other_files.txt");
+                    // helper to read up to n lines from file
+                    java.util.function.BiConsumer<Path,Integer> addLines = (p, n) -> {
+                        if (savedFiles.size() >= MAX_SAVED_FILES) return;
+                        try {
+                            if (Files.exists(p)) {
+                                try (java.util.stream.Stream<String> s = Files.lines(p, java.nio.charset.StandardCharsets.UTF_8)) {
+                                    s.limit(n).forEach(line -> {
+                                        if (savedFiles.size() < MAX_SAVED_FILES) savedFiles.add(line);
+                                    });
+                                }
+                            }
+                        } catch (Exception ex) {
+                            logger.debug("Failed to read saved list {}: {}", p, ex.getMessage());
+                        }
+                    };
+                    // collect some code files first, then docs, then others
+                    addLines.accept(codeList, 80);
+                    addLines.accept(docList, 40);
+                    addLines.accept(otherList, 20);
+                    if (!savedFiles.isEmpty()) savedInfo.put("savedFiles", savedFiles);
+                } catch (Exception ex) {
+                    logger.debug("Failed to prepare saved file list for client: {}", ex.getMessage());
+                }
                 boolean sentSaved = safeSend(emitter, "saved", savedInfo, false);
-                if (sentSaved) logger.info("Notified client of saved results for {}", dirPath); else logger.debug("Client did not receive 'saved' event for {} (likely disconnected)", dirPath);
+                if (sentSaved) {
+                    logger.info("Notified client of saved results for {}", dirPath);
+                    // best-effort: send a final 'done' event so the client can close deterministically even
+                    // if the controller-level 'done' isn't observed (some clients may close earlier)
+                    safeSend(emitter, "done", "saved", false);
+                } else {
+                    logger.debug("Client did not receive 'saved' event for {} (likely disconnected)", dirPath);
+                }
             } catch (Exception e) {
                 // include stack trace for save problems — this is an application-level issue
                 logger.warn("Failed to auto-save analysis results for {} during stream: {}", dirPath, e.getMessage(), e);
@@ -490,7 +692,7 @@ public class FileAnalysisService {
         }
     }
 
-    private void analyzeRecursivelyStream(File directory, AnalysisResult result, Set<String> visited, org.springframework.web.servlet.mvc.method.annotation.SseEmitter emitter) throws IOException {
+    private void analyzeRecursivelyStream(File directory, AnalysisResult result, Set<String> visited, AnalysisResult totals, org.springframework.web.servlet.mvc.method.annotation.SseEmitter emitter) throws IOException {
         long dirStart = System.currentTimeMillis();
         try {
             String realPath = directory.getCanonicalPath();
@@ -516,15 +718,28 @@ public class FileAnalysisService {
             }
 
             if (file.isDirectory()) {
+                // processed folder count (used by live progress)
                 result.setTotalFolders(result.getTotalFolders() + 1);
+                
+                // Update totals if we've exceeded the initial estimate
+                if (result.getTotalFolders() > totals.getTotalFolders()) {
+                    totals.setTotalFolders(result.getTotalFolders());
+                }
+
                 // send directory notification to client — abort if client disconnected during control events
                 safeSend(emitter, "directory", file.getAbsolutePath(), true);
+                // send folder progress (processed / total)
+                Map<String,Object> folderProg = new LinkedHashMap<>();
+                folderProg.put("processedFolders", result.getTotalFolders());
+                folderProg.put("totalFolders", totals.getTotalFolders());
+                if (totals.getTotalFolders() > 0) folderProg.put("percent", (int)((result.getTotalFolders()*100L)/totals.getTotalFolders())); else folderProg.put("percent", 0);
+                safeSend(emitter, "folderProgress", folderProg, false);
                 // skip descending into any 'target' directories - they are usually build outputs
                 if (file.isDirectory() && isIgnoredDirectoryName(file.getName())) {
                     logger.debug("Skipping ignored subdir during streaming analysis: {}", file.getAbsolutePath());
                     continue;
                 }
-                analyzeRecursivelyStream(file, result, visited, emitter);
+                analyzeRecursivelyStream(file, result, visited, totals, emitter);
             } else {
                 // skip files with ignored extensions (e.g. .idx, .db)
                 String fileExt = getFileExtension(file.getName());
@@ -532,20 +747,63 @@ public class FileAnalysisService {
                     logger.debug("Skipping ignored file by extension during stream analysis: {}", file.getAbsolutePath());
                     continue;
                 }
-                result.setTotalFiles(result.getTotalFiles() + 1);
                 String extension = getFileExtension(file.getName());
                 String fileType = classifyFile(extension);
-
-                    if ("code".equals(fileType)) {
+                
+                if ("code".equals(fileType)) {
+                    result.setTotalFiles(result.getTotalFiles() + 1);
                     result.setTotalCodeFiles(result.getTotalCodeFiles() + 1);
-                        // send file event; abort if sender cannot accept (client disconnected)
-                        safeSend(emitter, "file", file.getAbsolutePath(), true);
-                    analyzeCodeFile(file, extension, result);
+                    
+                    // Update totals if we've exceeded the initial estimate
+                    if (result.getTotalFiles() > totals.getTotalFiles()) totals.setTotalFiles(result.getTotalFiles());
+                    if (result.getTotalCodeFiles() > totals.getTotalCodeFiles()) totals.setTotalCodeFiles(result.getTotalCodeFiles());
+
+                    // send file event; abort if sender cannot accept (client disconnected)
+                    safeSend(emitter, "file", file.getAbsolutePath(), true);
+                    // analyze and stream per-file stats and progress
+                    analyzeCodeFile(file, extension, result, emitter, totals);
                 } else if ("document".equals(fileType)) {
+                    result.setTotalFiles(result.getTotalFiles() + 1);
                     result.setTotalDocFiles(result.getTotalDocFiles() + 1);
-                        // documents: notify client (abort on failure)
-                        safeSend(emitter, "file", file.getAbsolutePath(), true);
+                    
+                    // Update totals if we've exceeded the initial estimate
+                    if (result.getTotalFiles() > totals.getTotalFiles()) totals.setTotalFiles(result.getTotalFiles());
+                    if (result.getTotalDocFiles() > totals.getTotalDocFiles()) totals.setTotalDocFiles(result.getTotalDocFiles());
+
+                    try {
+                        long docLines = countLines(file);
+                        result.setTotalDocLines(result.getTotalDocLines() + docLines);
+                        result.setTotalLines(result.getTotalLines() + docLines);
+                        
+                        // Update line totals
+                        if (result.getTotalDocLines() > totals.getTotalDocLines()) totals.setTotalDocLines(result.getTotalDocLines());
+                        if (result.getTotalLines() > totals.getTotalLines()) totals.setTotalLines(result.getTotalLines());
+                    } catch (IOException ioe) {
+                        logger.debug("Failed to count lines for document {}: {}", file.getAbsolutePath(), ioe.getMessage());
+                    }
+                    // documents: notify client (abort on failure)
+                    safeSend(emitter, "file", file.getAbsolutePath(), true);
+                    // send per-file stats for documents (lines and processed counts)
+                    Map<String,Object> docStats = new LinkedHashMap<>();
+                    docStats.put("path", file.getAbsolutePath());
+                    docStats.put("type", "document");
+                    // doc lines is accumulated in result.getTotalDocLines() — send this file's lines instead
+                    try {
+                        long docLines = countLines(file);
+                        docStats.put("lines", docLines);
+                    } catch (IOException ioe) {
+                        docStats.put("lines", 0);
+                    }
+                    docStats.put("processedDocFiles", result.getTotalDocFiles());
+                    docStats.put("totalDocFiles", totals.getTotalDocFiles());
+                    if (totals.getTotalDocFiles() > 0) docStats.put("percentDocFiles", (int)((result.getTotalDocFiles()*100L)/totals.getTotalDocFiles())); else docStats.put("percentDocFiles", 0);
+                    // include doc-line running totals so the client can render processed/total counters live
+                    docStats.put("processedDocLines", result.getTotalDocLines());
+                    docStats.put("totalDocLines", totals.getTotalDocLines());
+                    if (totals.getTotalDocLines() > 0) docStats.put("percentDocLines", (int)((result.getTotalDocLines()*100L)/totals.getTotalDocLines())); else docStats.put("percentDocLines", 0);
+                    safeSend(emitter, "file-stats", docStats, false);
                 }
+                // else ignore (do not increment totalFiles)
             }
         }
         long dirElapsed = System.currentTimeMillis() - dirStart;
@@ -619,23 +877,26 @@ public class FileAnalysisService {
                         logger.debug("Skipping ignored file by extension during analysis: {}", file.getAbsolutePath());
                         continue;
                     }
-                result.setTotalFiles(result.getTotalFiles() + 1);
-                try {
-                    visited.add(file.getCanonicalPath());
-                } catch (IOException e) {
-                    // ignore
-                }
-                
                 String extension = getFileExtension(file.getName());
                 String fileType = classifyFile(extension);
                 
                 if ("code".equals(fileType)) {
+                    result.setTotalFiles(result.getTotalFiles() + 1);
                     result.setTotalCodeFiles(result.getTotalCodeFiles() + 1);
                     logger.trace("Analyzing code file: {} (ext={})", file.getAbsolutePath(), extension);
                     analyzeCodeFile(file, extension, result);
                 } else if ("document".equals(fileType)) {
+                    result.setTotalFiles(result.getTotalFiles() + 1);
                     result.setTotalDocFiles(result.getTotalDocFiles() + 1);
+                    try {
+                        long lines = countLines(file);
+                        result.setTotalDocLines(result.getTotalDocLines() + lines);
+                        result.setTotalLines(result.getTotalLines() + lines);
+                    } catch (Exception e) {
+                        logger.debug("Failed to count lines for doc file {}: {}", file.getAbsolutePath(), e.getMessage());
+                    }
                 }
+                // else ignore (do not increment totalFiles)
             }
         }
         long dirElapsed = System.currentTimeMillis() - dirStart;
@@ -650,6 +911,8 @@ public class FileAnalysisService {
         long fileStart = System.currentTimeMillis();
         try {
             long lineCount = countLines(file);
+            // track code-specific and total line counts
+            result.setTotalCodeLines(result.getTotalCodeLines() + lineCount);
             result.setTotalLines(result.getTotalLines() + lineCount);
             
             if ("java".equals(extension)) {
@@ -671,6 +934,194 @@ public class FileAnalysisService {
         } catch (Exception e) {
             logger.warn("Failed to analyze file: {} - {}", file.getPath(), e.getMessage());
         }
+    }
+
+    /**
+     * Streaming-aware analyzeCodeFile overload: updates result and emits per-file stats and progress events
+     */
+    private void analyzeCodeFile(File file, String extension, AnalysisResult result, org.springframework.web.servlet.mvc.method.annotation.SseEmitter emitter, AnalysisResult totals) {
+        long fileStart = System.currentTimeMillis();
+        try {
+            long lineCount = countLines(file);
+            // track code-specific and total line counts
+            result.setTotalCodeLines(result.getTotalCodeLines() + lineCount);
+            result.setTotalLines(result.getTotalLines() + lineCount);
+
+            // Update totals if we've exceeded the initial estimate
+            if (result.getTotalCodeLines() > totals.getTotalCodeLines()) totals.setTotalCodeLines(result.getTotalCodeLines());
+            if (result.getTotalLines() > totals.getTotalLines()) totals.setTotalLines(result.getTotalLines());
+
+            int methodCount;
+            if ("java".equals(extension)) {
+                // For Java we can stream individual method names as we discover them
+                try {
+                    JavaParser parser = new JavaParser();
+                    CompilationUnit cu = parser.parse(file).getResult().orElse(null);
+                    if (cu != null) {
+                        List<MethodDeclaration> methods = cu.findAll(MethodDeclaration.class);
+                        methodCount = methods.size();
+                        for (MethodDeclaration md : methods) {
+                            // increment processed methods and emit the current method name
+                            result.setTotalMethods(result.getTotalMethods() + 1);
+                            
+                            // Update totals if we've exceeded the initial estimate
+                            if (result.getTotalMethods() > totals.getTotalMethods()) totals.setTotalMethods(result.getTotalMethods());
+
+                            safeSend(emitter, "method", md.getNameAsString(), false);
+                            // also send a small method progress update
+                            Map<String,Object> mprog = new LinkedHashMap<>();
+                            mprog.put("processedMethods", result.getTotalMethods());
+                            mprog.put("totalMethods", totals.getTotalMethods());
+                            if (totals.getTotalMethods() > 0) mprog.put("percentMethods", (int)((result.getTotalMethods()*100L)/totals.getTotalMethods())); else mprog.put("percentMethods", 0);
+                            safeSend(emitter, "methodProgress", mprog, false);
+                        }
+                    } else {
+                        methodCount = 0;
+                    }
+                } catch (Exception e) {
+                    logger.debug("Streaming method names failed for {}: {}", file.getAbsolutePath(), e.getMessage());
+                    methodCount = countJavaMethods(file);
+                    result.setTotalMethods(result.getTotalMethods() + methodCount);
+                    if (result.getTotalMethods() > totals.getTotalMethods()) totals.setTotalMethods(result.getTotalMethods());
+                }
+            } else {
+                methodCount = estimateMethodCount(file, extension);
+                result.setTotalMethods(result.getTotalMethods() + methodCount);
+                if (result.getTotalMethods() > totals.getTotalMethods()) totals.setTotalMethods(result.getTotalMethods());
+            }
+
+            // emit file-level stats for the client UI to show lines and methods for this file
+            Map<String,Object> fileStats = new LinkedHashMap<>();
+            fileStats.put("path", file.getAbsolutePath());
+            fileStats.put("type", "code");
+            fileStats.put("ext", extension);
+            fileStats.put("lines", lineCount);
+            fileStats.put("methods", methodCount);
+            fileStats.put("processedCodeFiles", result.getTotalCodeFiles());
+            fileStats.put("totalCodeFiles", totals.getTotalCodeFiles());
+            if (totals.getTotalCodeFiles() > 0) fileStats.put("percentCodeFiles", (int)((result.getTotalCodeFiles()*100L)/totals.getTotalCodeFiles())); else fileStats.put("percentCodeFiles", 0);
+            if (totals.getTotalCodeLines() > 0) fileStats.put("percentCodeLines", (int)((result.getTotalCodeLines()*100L)/totals.getTotalCodeLines())); else fileStats.put("percentCodeLines", 0);
+            fileStats.put("processedMethods", result.getTotalMethods());
+            fileStats.put("totalMethods", totals.getTotalMethods());
+            if (totals.getTotalMethods() > 0) fileStats.put("percentMethods", (int)((result.getTotalMethods()*100L)/totals.getTotalMethods())); else fileStats.put("percentMethods", 0);
+
+            safeSend(emitter, "file-stats", fileStats, false);
+
+            // emit an overall 'progress' summary to let the UI update multiple bars in one go
+            Map<String,Object> progress = new LinkedHashMap<>();
+            progress.put("processedCodeFiles", result.getTotalCodeFiles());
+            progress.put("totalCodeFiles", totals.getTotalCodeFiles());
+            progress.put("processedCodeLines", result.getTotalCodeLines());
+            progress.put("totalCodeLines", totals.getTotalCodeLines());
+            progress.put("processedMethods", result.getTotalMethods());
+            progress.put("totalMethods", totals.getTotalMethods());
+            progress.put("processedFiles", result.getTotalFiles());
+            progress.put("totalFiles", totals.getTotalFiles());
+            progress.put("processedLines", result.getTotalLines());
+            progress.put("totalLines", totals.getTotalLines());
+            // include document counts in compact progress packet so UI can update doc bars
+            progress.put("processedDocFiles", result.getTotalDocFiles());
+            progress.put("totalDocFiles", totals.getTotalDocFiles());
+            progress.put("processedDocLines", result.getTotalDocLines());
+            progress.put("totalDocLines", totals.getTotalDocLines());
+            safeSend(emitter, "progress", progress, false);
+
+            long fileElapsed = System.currentTimeMillis() - fileStart;
+            if (fileElapsed > 500) {
+                logger.info("Slow analyzeCodeFile for {} ({}ms) — lines={}, ext={}", file.getAbsolutePath(), fileElapsed, lineCount, extension);
+            } else {
+                logger.trace("analyzeCodeFile {} completed in {}ms", file.getAbsolutePath(), fileElapsed);
+            }
+        } catch (java.nio.charset.MalformedInputException mie) {
+            // binary or undecodable file — skip method counting and lines for this file
+            logger.debug("Skipping file due to malformed encoding (likely binary): {} — {}", file.getPath(), mie.getMessage());
+        } catch (Exception e) {
+            logger.warn("Failed to analyze file: {} - {}", file.getPath(), e.getMessage());
+        }
+    }
+
+    /**
+     * Compute totals for a directory tree. This is a pre-scan to provide totals for streaming progress.
+     */
+    private int parseIntSafe(String s) {
+        if (s == null) return 0;
+        try {
+            return Integer.parseInt(s);
+        } catch (NumberFormatException e) {
+            return 0;
+        }
+    }
+
+    private long parseLongSafe(String s) {
+        if (s == null) return 0L;
+        try {
+            return Long.parseLong(s);
+        } catch (NumberFormatException e) {
+            return 0L;
+        }
+    }
+
+    private AnalysisResult computeTotals(File directory, Set<String> visited) throws IOException {
+        AnalysisResult totals = new AnalysisResult();
+        if (directory == null || !directory.exists()) return totals;
+
+        try {
+            String realPath = directory.getCanonicalPath();
+            if (visited.contains(realPath)) return totals;
+            visited.add(realPath);
+        } catch (IOException e) {
+            logger.debug("computeTotals: failed to canonicalize {}: {}", directory.getPath(), e.getMessage());
+        }
+
+        File[] files = directory.listFiles();
+        if (files == null) return totals;
+
+        for (File f : files) {
+            if (f.isHidden()) continue;
+            if (f.isFile() && isIgnoredFileName(f.getName())) continue;
+
+            if (f.isDirectory()) {
+                totals.setTotalFolders(totals.getTotalFolders() + 1);
+                if (isIgnoredDirectoryName(f.getName())) continue;
+                AnalysisResult childTotals = computeTotals(f, visited);
+                totals.setTotalFolders(totals.getTotalFolders() + childTotals.getTotalFolders());
+                totals.setTotalFiles(totals.getTotalFiles() + childTotals.getTotalFiles());
+                totals.setTotalCodeFiles(totals.getTotalCodeFiles() + childTotals.getTotalCodeFiles());
+                totals.setTotalDocFiles(totals.getTotalDocFiles() + childTotals.getTotalDocFiles());
+                totals.setTotalLines(totals.getTotalLines() + childTotals.getTotalLines());
+                totals.setTotalCodeLines(totals.getTotalCodeLines() + childTotals.getTotalCodeLines());
+                totals.setTotalDocLines(totals.getTotalDocLines() + childTotals.getTotalDocLines());
+                totals.setTotalMethods(totals.getTotalMethods() + childTotals.getTotalMethods());
+            } else {
+                String ext = getFileExtension(f.getName());
+                if (ext != null && IGNORED_FILE_EXTENSIONS.contains(ext)) continue;
+                String type = classifyFile(ext);
+                if ("code".equals(type)) {
+                    totals.setTotalFiles(totals.getTotalFiles() + 1);
+                    totals.setTotalCodeFiles(totals.getTotalCodeFiles() + 1);
+                    try {
+                        long lines = countLines(f);
+                        totals.setTotalCodeLines(totals.getTotalCodeLines() + lines);
+                        totals.setTotalLines(totals.getTotalLines() + lines);
+                    } catch (IOException ioe) {
+                        logger.debug("computeTotals: failed to count lines for {}: {}", f.getAbsolutePath(), ioe.getMessage());
+                    }
+                    if ("java".equals(ext)) totals.setTotalMethods(totals.getTotalMethods() + countJavaMethods(f)); else totals.setTotalMethods(totals.getTotalMethods() + estimateMethodCount(f, ext));
+                } else if ("document".equals(type)) {
+                    totals.setTotalFiles(totals.getTotalFiles() + 1);
+                    totals.setTotalDocFiles(totals.getTotalDocFiles() + 1);
+                    try {
+                        long docLines = countLines(f);
+                        totals.setTotalDocLines(totals.getTotalDocLines() + docLines);
+                        totals.setTotalLines(totals.getTotalLines() + docLines);
+                    } catch (IOException ioe) {
+                        logger.debug("computeTotals: failed to count lines for doc {}: {}", f.getAbsolutePath(), ioe.getMessage());
+                    }
+                }
+            }
+        }
+
+        return totals;
     }
 
     private long countLines(File file) throws IOException {
@@ -753,6 +1204,11 @@ public class FileAnalysisService {
         if (name.startsWith("test") && name.endsWith(".csv")) return true;
         // also ignore CSVs that start with 'sweep' or 'live' (e.g. sweep_2025.csv, live-results.csv)
         if ((name.startsWith("sweep") || name.startsWith("live")) && name.endsWith(".csv")) return true;
+
+        // Dockerfile variants: name may be 'Dockerfile' or 'Dockerfile.<variant>'
+        if (name.startsWith("dockerfile")) return true;
+        // docker-compose.* files (yaml/yml) – ignore these orchestration files
+        if (name.startsWith("docker-compose")) return true;
 
         return false;
     }

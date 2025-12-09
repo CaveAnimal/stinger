@@ -5,8 +5,12 @@ public class AnalysisResult {
     private int totalFiles;
     private int totalCodeFiles;
     private int totalDocFiles;
+    private int totalOtherFiles;
     private int totalMethods;
     private long totalLines;
+    // total lines by category
+    private long totalCodeLines;
+    private long totalDocLines;
     private String path;
     private String resultsPath;
 
@@ -45,6 +49,14 @@ public class AnalysisResult {
         this.totalDocFiles = totalDocFiles;
     }
 
+    public int getTotalOtherFiles() {
+        return totalOtherFiles;
+    }
+
+    public void setTotalOtherFiles(int totalOtherFiles) {
+        this.totalOtherFiles = totalOtherFiles;
+    }
+
     public int getTotalMethods() {
         return totalMethods;
     }
@@ -59,6 +71,22 @@ public class AnalysisResult {
 
     public void setTotalLines(long totalLines) {
         this.totalLines = totalLines;
+    }
+
+    public long getTotalCodeLines() {
+        return totalCodeLines;
+    }
+
+    public void setTotalCodeLines(long totalCodeLines) {
+        this.totalCodeLines = totalCodeLines;
+    }
+
+    public long getTotalDocLines() {
+        return totalDocLines;
+    }
+
+    public void setTotalDocLines(long totalDocLines) {
+        this.totalDocLines = totalDocLines;
     }
 
     public String getPath() {

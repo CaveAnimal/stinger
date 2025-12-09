@@ -8,23 +8,20 @@
 </head>
 <body>
     <div class="container">
-        <header>
-            <h1>🐝 Stinger - Code Repository Analysis Tool</h1>
-            <p>Navigate and analyze code repositories</p>
-        </header>
+        <div class="top-bar">
+            <div class="branding">
+                <h1>🐝 Stinger</h1>
+                <p>Code Repository Analysis Tool</p>
+            </div>
+            <div class="path-input-group">
+                <button id="backBtn" class="btn btn-secondary">Back</button>
+                <input type="text" id="currentPath" placeholder="Enter directory path..." />
+                <button id="navigateBtn" class="btn btn-primary">Navigate</button>
+                <button id="analyzeBtn" class="btn btn-success">Analyze</button>
+            </div>
+        </div>
 
         <main>
-            <div class="path-section">
-                <label for="currentPath">Current Path:</label>
-                <div class="path-input-group">
-                    <button id="backBtn" class="btn btn-secondary">Back</button>
-                    <input type="text" id="currentPath" placeholder="Enter directory path..." />
-                    <button id="navigateBtn" class="btn btn-primary">Navigate</button>
-                    <button id="analyzeBtn" class="btn btn-success">Analyze</button>
-                </div>
-                <!-- Browse history hidden (kept internal) -->
-            </div>
-
             <div class="content-wrapper">
                 <div class="file-explorer">
                     <h2>File Explorer</h2>

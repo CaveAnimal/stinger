@@ -8,7 +8,7 @@ body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     min-height: 100vh;
-    padding: 20px;
+    padding: 10px;
 }
 
 .container {
@@ -20,49 +20,47 @@ body {
     overflow: hidden;
 }
 
-header {
+.top-bar {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
-    padding: 30px;
-    text-align: center;
+    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
 }
 
-header h1 {
-    font-size: 2.5em;
-    margin-bottom: 10px;
+.branding {
+    flex-shrink: 0;
 }
 
-header p {
-    font-size: 1.1em;
+.branding h1 {
+    font-size: 1.2em;
+    margin: 0;
+    line-height: 1.2;
+}
+
+.branding p {
+    font-size: 0.75em;
     opacity: 0.9;
-}
-
-main {
-    padding: 30px;
-}
-
-.path-section {
-    margin-bottom: 30px;
-}
-
-.path-section label {
-    display: block;
-    font-weight: 600;
-    margin-bottom: 10px;
-    color: #333;
+    margin: 0;
 }
 
 .path-input-group {
+    flex: 1;
     display: flex;
     gap: 10px;
 }
 
+main {
+    padding: 15px;
+}
+
 #currentPath {
     flex: 1;
-    padding: 12px 15px;
+    padding: 6px 10px;
     border: 2px solid #e0e0e0;
     border-radius: 6px;
-    font-size: 1em;
+    font-size: 0.95em;
     transition: border-color 0.3s;
 }
 
@@ -72,10 +70,10 @@ main {
 }
 
 .btn {
-    padding: 12px 24px;
+    padding: 6px 16px;
     border: none;
     border-radius: 6px;
-    font-size: 1em;
+    font-size: 0.95em;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s;
@@ -112,16 +110,16 @@ main {
 .file-explorer, .analysis-panel {
     background: #f8f9fa;
     border-radius: 8px;
-    padding: 20px;
+    padding: 10px;
     min-height: 500px;
 }
 
 .file-explorer h2, .analysis-panel h2 {
     color: #333;
-    margin-bottom: 20px;
-    font-size: 1.5em;
+    margin-bottom: 10px;
+    font-size: 1.2em;
     border-bottom: 3px solid #667eea;
-    padding-bottom: 10px;
+    padding-bottom: 5px;
 }
 
 .file-list {
@@ -129,16 +127,48 @@ main {
     overflow-y: auto;
 }
 
+.streamed-files {
+    margin-top: 12px;
+    background: #fff;
+    border: 1px solid #e6e6e6;
+    padding: 8px;
+    border-radius: 6px;
+}
+
+.streamed-header {
+    font-weight: 700;
+    color: #333;
+    margin-bottom: 6px;
+    font-size: 0.95em;
+}
+
+.streamed-file-list {
+    list-style: none;
+    padding: 6px;
+    max-height: 260px;
+    overflow-y: auto;
+    margin: 0;
+}
+
+.streamed-file {
+    font-family: monospace;
+    font-size: 0.9em;
+    padding: 2px 6px;
+    border-bottom: 1px solid #f2f2f2;
+    color: #333;
+    word-break: break-all;
+}
+
 .file-item {
-    padding: 12px 15px;
-    margin-bottom: 8px;
+    padding: 4px 8px;
+    margin-bottom: 4px;
     background: white;
     border-radius: 6px;
     cursor: pointer;
     transition: all 0.2s;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     border: 1px solid #e0e0e0;
 }
 
@@ -149,7 +179,7 @@ main {
 }
 
 .file-icon {
-    font-size: 1.5em;
+    font-size: 1.2em;
 }
 
 .file-info {
@@ -190,19 +220,19 @@ main {
 .stat-card {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
-    padding: 20px;
+    padding: 10px;
     border-radius: 8px;
     text-align: center;
 }
 
 .stat-value {
-    font-size: 2.5em;
+    font-size: 1.8em;
     font-weight: bold;
-    margin-bottom: 5px;
+    margin-bottom: 2px;
 }
 
 .stat-label {
-    font-size: 0.9em;
+    font-size: 0.8em;
     opacity: 0.9;
     text-transform: uppercase;
     letter-spacing: 1px;
@@ -210,21 +240,99 @@ main {
 
 .analysis-path {
     background: #f8f9fa;
-    padding: 15px;
+    padding: 8px;
     border-radius: 6px;
-    margin-top: 20px;
+    margin-top: 10px;
     font-family: monospace;
     font-size: 0.9em;
     word-break: break-all;
 }
 
 .analysis-live {
-    margin-top: 12px;
+    margin-top: 8px;
+}
+
+.analysis-section {
+    margin-bottom: 6px;
+    padding: 5px;
+    background: #fafafa;
+    border-radius: 6px;
+    border: 1px solid #eee;
+}
+
+.section-title {
+    font-weight: 700;
+    margin-bottom: 2px;
+    color: #333;
+    word-break: break-all;
+    overflow-wrap: anywhere;
+    font-size: 0.95em;
+    height: 2.6em;
+    line-height: 1.3;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
+.section-subtitle {
+    font-size: 0.85em;
+    font-weight: 600;
+    color: #666;
+    margin-top: 4px;
+    margin-bottom: 2px;
+}
+
+.sub-row {
+    font-weight: 600;
+    margin-bottom: 1px;
+    color: #555;
+    font-size: 0.9em;
+}
+
+.progress-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 1px 0 2px 0;
+}
+
+.progress {
+    flex: 1;
+    height: 8px;
+    background: #e9ecef;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #4f46e5 0%, #06b6d4 100%);
+    width: 0%;
+    transition: width 0.18s ease;
+}
+
+.progress-percent {
+    min-width: 45px;
+    text-align: right;
+    font-weight: 700;
+    color: #333;
+    white-space: nowrap;
+    flex-shrink: 0;
+    font-size: 0.9em;
+}
+
+.progress-count {
+    font-size: 0.85em;
+    color: #555;
+    margin-top: 2px;
+    font-family: monospace;
 }
 
 .analysis-live-header {
     font-weight: 700;
-    margin-bottom: 8px;
+    margin-bottom: 4px;
+    font-size: 1em;
 }
 
 .analysis-log {
@@ -243,6 +351,9 @@ main {
     font-family: monospace;
     font-size: 0.9em;
     color: #333;
+    word-break: break-all;
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
 }
 
 .analysis-log .analysis-event.directory {
@@ -266,6 +377,15 @@ main {
     text-align: center;
     padding: 40px;
     color: #667eea;
+}
+
+/* compact (small) loading indicator used for inline operations to avoid large blank areas */
+.loading.compact {
+    padding: 6px 8px;
+    text-align: left;
+    color: #667eea;
+    font-weight: 600;
+    font-size: 0.95em;
 }
 
 .loading::after {

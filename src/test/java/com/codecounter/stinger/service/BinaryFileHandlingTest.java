@@ -4,8 +4,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,8 +35,8 @@ class BinaryFileHandlingTest {
         try {
             // should not throw even though file has malformed encoding
             AnalysisResult result = assertDoesNotThrow(() -> fileAnalysisService.analyzeDirectory(project.toString()));
-            // both files should be counted (binary included as an 'other' file)
-            assertEquals(2, result.getTotalFiles());
+            // 'weird.bin' is now ignored by extension, so only 'Included.java' is counted
+            assertEquals(1, result.getTotalFiles());
         } finally {
             System.clearProperty("stinger.results.dir");
         }
