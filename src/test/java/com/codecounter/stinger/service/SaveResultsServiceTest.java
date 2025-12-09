@@ -49,7 +49,19 @@ class SaveResultsServiceTest {
         assertTrue(docs.stream().anyMatch(s -> s.endsWith("README.md")));
 
         List<String> other = Files.readAllLines(out.resolve("other_files.txt"));
-        assertTrue(other.stream().anyMatch(s -> s.endsWith("data.bin")));
+        // data.bin is now ignored by extension, and "other" files are ignored by policy
+        assertTrue(other.isEmpty());
+
+        // summary.txt should include total lines metadata for code and documents and standard keys
+        List<String> summaryLines = Files.readAllLines(out.resolve("summary.txt"));
+        List<String> requiredKeys = List.of(
+            "root:", "createdAt:", "folders:", "totalFiles:", "codeFiles:", "docFiles:", "otherFiles:",
+            "totalCodeLines:", "totalDocLines:", "totalLines:"
+        );
+
+        for (String key : requiredKeys) {
+            assertTrue(summaryLines.stream().anyMatch(s -> s.startsWith(key)), "summary.txt must contain key '" + key + "'");
+        }
 
             // Also verify analyzeDirectory returns a resultsPath
             AnalysisResult result = fileAnalysisService.analyzeDirectory(tmpDir.toString());
