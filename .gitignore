@@ -36,3 +36,7 @@ build/
 
 # Generated analysis results (do not commit)
 code_counter_results/
+.venv/
+.venv
+__pycache__/
+.mypy_cache/

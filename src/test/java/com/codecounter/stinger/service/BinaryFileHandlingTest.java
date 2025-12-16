@@ -37,6 +37,13 @@ class BinaryFileHandlingTest {
             AnalysisResult result = assertDoesNotThrow(() -> fileAnalysisService.analyzeDirectory(project.toString()));
             // 'weird.bin' is now ignored by extension, so only 'Included.java' is counted
             assertEquals(1, result.getTotalFiles());
+
+            // Now create a file with a .java extension but malformed bytes — should be treated as 0 lines and not crash
+            byte[] badJava = new byte[] {(byte)0xC3};
+            Files.write(project.resolve("Bad.java"), badJava);
+            AnalysisResult result2 = assertDoesNotThrow(() -> fileAnalysisService.analyzeDirectory(project.toString()));
+            // both .java files should be present but the malformed one contributes 0 code lines
+            assertEquals(2, result2.getTotalFiles());
         } finally {
             System.clearProperty("stinger.results.dir");
         }

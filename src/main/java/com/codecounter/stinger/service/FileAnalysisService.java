@@ -172,8 +172,14 @@ public class FileAnalysisService {
     // to point to a temporary location so tests do not write into the repo's ./code_counter_results/ folder.
     private final String resultsDirProperty;
 
-    public FileAnalysisService(@Value("${stinger.results.dir:code_counter_results}") String resultsDirProperty) {
+    private final H2StorageService h2StorageService;
+
+    public FileAnalysisService(
+        @Value("${stinger.results.dir:code_counter_results}") String resultsDirProperty,
+        H2StorageService h2StorageService
+    ) {
         this.resultsDirProperty = resultsDirProperty;
+        this.h2StorageService = h2StorageService;
     }
 
     public List<FileNode> listDirectory(String dirPath) throws IOException {
@@ -523,6 +529,8 @@ public class FileAnalysisService {
             logger.info("Auto-saved analysis results to {}", saved);
             // expose saved path in result for callers
             result.setResultsPath(saved.toString());
+            // optional post-save step (no-op when disabled)
+            h2StorageService.onCodeCounterResultsSaved(saved);
             // attempt to read the auto-saved summary and copy computed line totals back into the AnalysisResult
             Path summary = saved.resolve("summary.txt");
             if (Files.exists(summary)) {
@@ -633,6 +641,10 @@ public class FileAnalysisService {
             try {
                 Path saved = saveAnalysisResults(dirPath, result);
                 logger.info("Auto-saved analysis results to {} during stream", saved);
+
+                // optional post-save step (no-op when disabled)
+                h2StorageService.onCodeCounterResultsSaved(saved);
+
                 // notify client with saved info and a concise summary so the client can display quickly
                 Map<String,Object> savedInfo = new LinkedHashMap<>();
                 savedInfo.put("resultsPath", saved.toString());
@@ -1127,6 +1139,13 @@ public class FileAnalysisService {
     private long countLines(File file) throws IOException {
         try (Stream<String> lines = Files.lines(file.toPath(), java.nio.charset.StandardCharsets.UTF_8)) {
             return lines.count();
+        } catch (java.io.UncheckedIOException uioe) {
+            // Files.lines may wrap a MalformedInputException in an UncheckedIOException.
+            if (uioe.getCause() instanceof java.nio.charset.MalformedInputException) {
+                logger.debug("countLines: Malformed input when reading {} — treating as 0 lines", file.getPath());
+                return 0L;
+            }
+            throw uioe;
         } catch (java.nio.charset.MalformedInputException mie) {
             logger.debug("countLines: Malformed input when reading {} — treating as 0 lines", file.getPath());
             return 0L;
@@ -1150,10 +1169,10 @@ public class FileAnalysisService {
         try {
             List<String> lines = Files.readAllLines(file.toPath(), java.nio.charset.StandardCharsets.UTF_8);
             int methodCount = 0;
-            
+
             for (String line : lines) {
                 String trimmed = line.trim();
-                
+
                 if (extension.equals("js") || extension.equals("ts") || extension.equals("jsx") || extension.equals("tsx")) {
                     if (trimmed.startsWith("function ") || trimmed.contains(" function(") || 
                         trimmed.matches(".*\\w+\\s*\\([^)]*\\)\\s*\\{.*") ||
